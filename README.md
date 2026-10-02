@@ -4,19 +4,19 @@ Dashboard local da operação da padaria. Ela não usa pedidos fictícios e não
 
 ## Abrir
 
-Na pasta do projeto, execute:
+Na pasta dashboard, execute:
 
 ```powershell
-.\work\dashboard\start-dashboard.ps1
+.\start-dashboard.ps1
 ```
 
 Abra `http://127.0.0.1:8766/`. Para encerrar o servidor local:
 
 ```powershell
-.\work\dashboard\stop-dashboard.ps1
+.\stop-dashboard.ps1
 ```
 
-O servidor escuta somente em `127.0.0.1` e encaminha as chamadas `/api/*` ao n8n local em `127.0.0.1:5678`.
+O servidor escuta somente em `127.0.0.1`, serve apenas os arquivos da interface e encaminha as chamadas `/api/*` ao n8n local em `127.0.0.1:5678`.
 
 ## Acesso da API
 
