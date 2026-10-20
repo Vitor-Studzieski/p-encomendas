@@ -8,6 +8,7 @@ export default defineConfig({
   serverDir: "./routes",
   preset: "vercel",
   vercel: {
+    entryFormat: "node",
     functions: {
       runtime: "nodejs24.x",
       includeFiles: ["server-handlers/**/*", "lib/**/*"]
