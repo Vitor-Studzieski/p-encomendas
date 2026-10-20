@@ -10,7 +10,7 @@ export default defineConfig({
   vercel: {
     functions: {
       runtime: "nodejs24.x",
-      includeFiles: ["api/**/*", "lib/**/*"]
+      includeFiles: ["server-handlers/**/*", "lib/**/*"]
     }
   }
 });
