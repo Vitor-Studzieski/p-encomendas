@@ -10,6 +10,8 @@ const publicFiles = [
   ["src/shared/styles.css", "src/shared/styles.css"],
   ["src/forms/forms.css", "src/forms/forms.css"],
   ["src/orders/order-form.js", "src/orders/order-form.js"],
+  ["src/shared/order-items.js", "src/shared/order-items.js"],
+  ["src/dashboard/domain/orders.js", "src/dashboard/domain/orders.js"],
   ["src/surveys/satisfaction-form.js", "src/surveys/satisfaction-form.js"]
 ];
 
