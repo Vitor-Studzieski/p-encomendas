@@ -122,6 +122,8 @@ function parsePhone(value) {
 
 form.addEventListener("submit", async event => {
   event.preventDefault();
+  status.textContent = "";
+  status.className = "";
   if (!access) { status.textContent = "Este link não é válido. Peça um novo link à operação."; return; }
   const button = form.querySelector("button[type=submit]");
   try {
@@ -161,10 +163,24 @@ form.addEventListener("submit", async event => {
     orderTextPreview.className = "order-text-preview";
     submitButton.innerHTML = originalSubmitMarkup;
     itemEditor.reset();
-    status.textContent = isTextOrder
-      ? "Pedido enviado. A equipe de Confeitaria vai confirmar a disponibilidade e receberá os itens."
-      : "Pedido enviado. A Padaria vai confirmar a disponibilidade; depois, os setores selecionados receberão seus itens.";
+    const warnings = Array.isArray(result.warnings) ? result.warnings : [];
+    if (warnings.length) {
+      const warningMessages = warnings.map(warning => {
+        const recipient = warning.tag === "order-created-bakery" ? "Padaria: "
+          : warning.tag === "order-created-customer" ? "Cliente: "
+            : "";
+        return recipient + String(warning.message || "Não foi possível enviar uma notificação.");
+      });
+      status.className = "status-warning";
+      status.textContent = "Pedido " + (result.order_ref || "") + " registrado no painel, mas houve falha em uma notificação: " + warningMessages.join(" ") + " Não envie novamente para evitar duplicidade.";
+    } else {
+      status.className = "status-success";
+      status.textContent = isTextOrder
+        ? "Pedido enviado. A equipe de Confeitaria vai confirmar a disponibilidade e receberá os itens."
+        : "Pedido enviado. A Padaria vai confirmar a disponibilidade; depois, os setores selecionados receberão seus itens.";
+    }
   } catch (error) {
+    status.className = "status-error";
     status.textContent = error.message || "Não foi possível enviar a encomenda.";
   } finally {
     button.disabled = !itemEditor || Boolean(orderTextInput.value.trim() && (!parsedOrder || parsedOrderText !== orderTextInput.value.trim()));

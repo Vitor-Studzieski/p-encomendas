@@ -37,6 +37,9 @@
 .public-submit:hover:not(:disabled), .survey-submit:hover:not(:disabled) { background: #285a46; transform: translateY(-1px); }
 .public-submit:disabled, .survey-submit:disabled { opacity: .55; cursor: wait; }
 #form-status, #survey-status { min-height: 19px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+#form-status.status-success { color: #286548; }
+#form-status.status-warning { color: #9b542f; font-weight: 700; }
+#form-status.status-error { color: #a64236; }
 .survey-card form { display: grid; gap: 12px; }
 .survey-card label { color: #34453b; font-size: 12px; font-weight: 700; }
 .survey-card select { cursor: pointer; }
