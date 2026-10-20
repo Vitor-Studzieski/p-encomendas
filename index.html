@@ -3,168 +3,223 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#17312a">
-  <title>Gestão de Encomendas</title>
+  <meta name="theme-color" content="#17372d">
+  <meta name="description" content="Painel de operação para pedidos, produção e atendimento da padaria.">
+  <title>Encomendas · Operação</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="dashboard.css">
+  <link rel="stylesheet" href="/src/shared/styles.css">
+  <link rel="stylesheet" href="/src/dashboard/dashboard.css">
 </head>
-<body>
+<body class="dashboard-page">
   <div class="app-shell">
     <aside class="sidebar">
-      <a class="brand" href="#" aria-label="Gestão de Encomendas">
-        <span class="brand-mark" aria-hidden="true">♨</span>
-        <span><strong>Encomendas</strong><small>PAINEL DE OPERAÇÃO</small></span>
+      <a class="brand" href="#" aria-label="Encomendas, início">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none"><path d="M7 20.5c0-2.2 2.3-3.4 4.3-4.2 1.4-.6 2.5-1.3 2.5-2.5 0-1.4-1.1-2.4-2.5-2.4-1.3 0-2.2.9-2.4 2.1M15.8 23c-1.2-2.4-.5-4.4 1.4-6 1.5-1.2 2.1-2.4 1.5-4.2M22 11.7c1.4 1.8 1.8 3.6.4 5.4-.9 1.2-1.2 2.1-.5 3.4M5.5 22.6c2.9-1.5 6.1-1.2 9.2-.5 3.8.8 7.7 1.3 11.8-.5M8.7 25c4.8 1.9 10.3 1.9 15.1 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </span>
+        <span class="brand-copy"><strong>Encomendas</strong><small>OPERAÇÃO DA PADARIA</small></span>
       </a>
-      <div class="nav-caption">MENU</div>
+
+      <div class="workspace-switch" aria-label="Espaço de trabalho atual">
+        <span class="workspace-mark" aria-hidden="true">OP</span>
+        <span class="workspace-copy"><strong>Operação diária</strong><small>Equipe da padaria</small></span>
+        <span class="workspace-chevron" aria-hidden="true">⌄</span>
+      </div>
+
       <nav class="main-nav" aria-label="Navegação principal">
-        <button class="nav-link active" data-view="overview" type="button"><span class="nav-icon">◫</span>Visão geral</button>
-        <button class="nav-link" data-view="orders" type="button"><span class="nav-icon">▤</span>Pedidos<span class="nav-count" id="nav-order-count">00</span></button>
-        <button class="nav-link" data-view="history" type="button"><span class="nav-icon">◷</span>Histórico</button>
+        <span class="nav-caption">MENU PRINCIPAL</span>
+        <button class="nav-link active" data-view="overview" type="button" aria-current="page">
+          <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="m3.5 10 8.5-7 8.5 7v10.5h-6v-7h-5v7h-6V10Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+          <span>Visão geral</span>
+        </button>
+        <button class="nav-link" data-view="orders" type="button">
+          <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none"><rect x="4" y="3.5" width="16" height="17" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          <span>Pedidos</span><span class="nav-count" id="nav-order-count">00</span>
+        </button>
+        <button class="nav-link" data-view="agenda" type="button">
+          <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M7.5 3.5v3M16.5 3.5v3M4 9.5h16M8 13h2M13 13h3M8 16.5h2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          <span>Produção</span>
+        </button>
+        <button class="nav-link" data-view="history" type="button">
+          <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 1 0 2.34-5.66L4 8.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M4 4.5v4h4M12 7.5v5l3.3 1.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Histórico</span>
+        </button>
       </nav>
-      <div class="sidebar-bottom">
-        <div class="connection-card">
-          <span class="connection-dot" id="connection-dot"></span>
-          <div><strong id="connection-title">Workflow desconectado</strong><small id="connection-caption">API pendente</small></div>
-        </div>
-        <button class="nav-link settings-link" data-view="settings" type="button"><span class="nav-icon">⚙</span>Configurações</button>
-        <div class="profile"><span class="avatar">F</span><span><strong>Operação</strong><small>Painel da padaria</small></span><span class="profile-more">•••</span></div>
+
+      <div class="sidebar-spacer"></div>
+      <div class="connection-card" aria-live="polite">
+        <span class="connection-indicator"><span class="connection-dot" id="connection-dot"></span></span>
+        <div><strong id="connection-title">Painel desconectado</strong><small id="connection-caption">Conecte o acesso para começar</small></div>
+      </div>
+      <button class="nav-link settings-link" data-view="settings" type="button">
+        <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/><path d="m19.4 15 .1.1a1.7 1.7 0 0 1-2.4 2.4l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a1.7 1.7 0 0 1-3.4 0v-.2a1.7 1.7 0 0 0-2.9-1.2l-.1.1a1.7 1.7 0 1 1-2.4-2.4l.1-.1A1.7 1.7 0 0 0 4.2 12H4a1.7 1.7 0 0 1 0-3.4h.2a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a1.7 1.7 0 1 1 2.4-2.4l.1.1a1.7 1.7 0 0 0 2.9-1.2V2a1.7 1.7 0 0 1 3.4 0v.2a1.7 1.7 0 0 0 2.9 1.2l.1-.1a1.7 1.7 0 1 1 2.4 2.4l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.2a1.7 1.7 0 0 1 0 3.4h-.2a1.7 1.7 0 0 0-1.2 2.9Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        <span>Configurações</span>
+      </button>
+      <div class="profile">
+        <span class="avatar" aria-hidden="true">OP</span>
+        <span><strong>Operação</strong><small>Painel da padaria</small></span>
+        <span class="profile-menu" aria-hidden="true">•••</span>
       </div>
     </aside>
 
     <main class="main-content">
       <header class="topbar">
-        <div class="mobile-brand"><span class="brand-mark small">P</span><strong>Encomendas</strong></div>
-        <div class="breadcrumbs"><span>Operação</span><span>/</span><strong id="breadcrumb-current">Visão geral</strong></div>
+        <div class="mobile-brand"><span class="brand-mark small" aria-hidden="true">♨</span><strong>Encomendas</strong></div>
+        <div class="breadcrumbs"><span>Operação</span><span class="breadcrumb-divider">/</span><strong id="breadcrumb-current">Visão geral</strong></div>
         <div class="topbar-actions">
           <span class="today-label" id="today-label"></span>
-          <button class="icon-button" id="refresh-button" type="button" aria-label="Atualizar painel" title="Atualizar painel">↻</button>
-          <button class="access-button" id="api-access-button" type="button">Conectar</button>
-          <button class="primary-button" id="new-order-button" type="button" disabled title="Ative o endpoint seguro de pedidos nas configurações"><span>＋</span>Novo pedido</button>
+          <button class="icon-button" id="refresh-button" type="button" aria-label="Atualizar painel" title="Atualizar painel">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.8-3L4 10M4 5v5h5M4 13a8 8 0 0 0 14.8 3L20 14m0 5v-5h-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="access-button" id="api-access-button" type="button" aria-label="Entrar na operação">Acessar</button>
+          <button class="primary-button topbar-create" id="new-order-button" type="button" disabled title="Entre para registrar pedidos"><span aria-hidden="true">＋</span><span class="create-label">Novo pedido</span></button>
         </div>
       </header>
 
       <div class="page-wrap">
         <section class="page-heading">
           <div>
-            <div class="eyebrow">PAINEL DE OPERAÇÃO</div>
+            <div class="eyebrow"><span class="eyebrow-mark" aria-hidden="true"></span>PAINEL DA OPERAÇÃO</div>
             <h1 id="page-title">Visão geral</h1>
             <p id="page-subtitle">Acompanhe encomendas, produção e retirada.</p>
           </div>
-          <div class="demo-badge" id="demo-badge"><span class="demo-dot"></span>Conexão necessária</div>
+          <div class="demo-badge" id="demo-badge"><span class="demo-dot" aria-hidden="true"></span>Acesso necessário</div>
         </section>
 
-        <div class="notice" id="connection-notice" role="status">
-          <span class="notice-icon">i</span>
-          <p><strong>Conexão com dados reais ainda não ativa.</strong> Pedidos, histórico e ações só aparecem quando a API autenticada do workflow estiver conectada.</p>
-        </div>
+        <section class="notice" id="connection-notice" role="status">
+          <span class="notice-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 8v4m0 4h.01M10.3 3.8 2.9 17a2 2 0 0 0 1.8 3h14.6a2 2 0 0 0 1.8-3L13.7 3.8a2 2 0 0 0-3.4 0Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <div class="notice-copy"><strong>Conecte a operação para começar</strong><p>Entre com a credencial da dashboard para carregar pedidos, agenda e contatos do Supabase.</p></div>
+          <button class="settings-shortcut" id="settings-shortcut" type="button">Ver configuração <span aria-hidden="true">→</span></button>
+        </section>
 
         <section class="metrics" id="metrics" aria-label="Resumo dos pedidos">
-          <article class="metric-card"><div class="metric-top"><span>Pedidos ativos</span><span class="metric-icon warm">▤</span></div><div class="metric-value" id="metric-total">00</div><div class="metric-foot">Na lista atual</div></article>
-          <article class="metric-card"><div class="metric-top"><span>Aguardando cozinha</span><span class="metric-icon blue">◷</span></div><div class="metric-value" id="metric-pending">00</div><div class="metric-foot">Aguardando confirmação</div></article>
-          <article class="metric-card"><div class="metric-top"><span>Em preparo</span><span class="metric-icon orange">♨</span></div><div class="metric-value" id="metric-preparing">00</div><div class="metric-foot">Na produção</div></article>
-          <article class="metric-card"><div class="metric-top"><span>Prontos para retirada</span><span class="metric-icon green">✓</span></div><div class="metric-value" id="metric-ready">00</div><div class="metric-foot">Aguardando o cliente</div></article>
+          <article class="metric-card metric-total">
+            <div class="metric-top"><span>Pedidos ativos</span><span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="3.5" width="16" height="17" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span></div>
+            <div class="metric-value" id="metric-total">00</div><div class="metric-foot">Encomendas em andamento</div>
+          </article>
+          <article class="metric-card metric-pending">
+            <div class="metric-top"><span>Aguardando confirmação</span><span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.7"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+            <div class="metric-value" id="metric-pending">00</div><div class="metric-foot">Precisam de retorno da equipe</div>
+          </article>
+          <article class="metric-card metric-preparing">
+            <div class="metric-top"><span>Em produção</span><span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M7 18.5h10.5a3.5 3.5 0 0 0 .5-7 5.5 5.5 0 0 0-10.4-1.8A4.5 4.5 0 0 0 7 18.5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M10 8.5c-.8-1.1-.6-2.1.2-3M14.2 7.2c-.5-.9-.3-1.7.3-2.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span></div>
+            <div class="metric-value" id="metric-preparing">00</div><div class="metric-foot">Pedidos em fabricação</div>
+          </article>
+          <article class="metric-card metric-ready">
+            <div class="metric-top"><span>Prontos para retirada</span><span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="m5 12.5 4.3 4.3L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+            <div class="metric-value" id="metric-ready">00</div><div class="metric-foot">Aguardando o cliente</div>
+          </article>
         </section>
 
-        <section class="content-card" id="orders-section">
+        <section class="content-card orders-card" id="orders-section">
           <div class="section-header">
-            <div><h2 id="list-title">Pedidos recentes</h2><p id="list-caption">Consulte os itens, a retirada e o status de cada encomenda.</p></div>
-            <button class="text-button" id="view-all-button" type="button">Ver todos <span>→</span></button>
+            <div><span class="section-kicker">ACOMPANHAMENTO</span><h2 id="list-title">Pedidos recentes</h2><p id="list-caption">Veja os itens, o horário de retirada e o andamento de cada encomenda.</p></div>
+            <button class="text-button" id="view-all-button" type="button">Ver todos <span aria-hidden="true">→</span></button>
           </div>
           <div class="toolbar">
-            <label class="search-box"><span aria-hidden="true">⌕</span><input id="search-input" type="search" placeholder="Buscar número, cliente ou produto..." autocomplete="off"></label>
-            <label class="filter-select"><span class="sr-only">Filtrar por status</span><select id="status-filter"><option value="all">Todos os status</option><option value="awaiting_confirmation">Aguardando confirmação</option><option value="confirmed">Aceito pela cozinha</option><option value="preparing">Em preparo</option><option value="needs_attention">Precisa de atenção</option><option value="ready">Pronto para retirada</option><option value="rejected">Recusado</option><option value="cancelled">Cancelado</option><option value="picked_up">Retirado</option></select></label>
-            <label class="filter-select"><span class="sr-only">Filtrar data</span><select id="date-filter"><option value="today">Hoje</option><option value="all">Qualquer data</option></select></label>
+            <label class="search-box"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 4.2 4.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><input id="search-input" type="search" placeholder="Buscar pedido, cliente ou produto" autocomplete="off" aria-label="Buscar pedidos"></label>
+            <label class="filter-select"><span class="sr-only">Filtrar por status</span><select id="status-filter"><option value="all">Todos os status</option><option value="awaiting_confirmation">Aguardando confirmação</option><option value="confirmed">Aguardando produção</option><option value="preparing">Em fabricação</option><option value="needs_attention">Precisa de atenção</option><option value="ready">Pronto para retirada</option><option value="rejected">Recusado</option><option value="cancelled">Cancelado</option><option value="picked_up">Retirado (histórico)</option></select></label>
+            <label class="filter-select date-filter"><span class="sr-only">Filtrar data</span><select id="date-filter"><option value="today">Retirada hoje</option><option value="all">Qualquer data</option></select></label>
           </div>
           <div class="table-scroll">
             <table>
-              <thead><tr><th>IDENTIFICAÇÃO</th><th>CLIENTE</th><th>ITENS DO PEDIDO</th><th>RETIRADA</th><th>STATUS</th><th></th></tr></thead>
+              <thead><tr><th>ENCOMENDA</th><th>CLIENTE</th><th>ITENS</th><th>RETIRADA</th><th>ETAPA</th><th><span class="sr-only">Ações</span></th></tr></thead>
               <tbody id="orders-table"></tbody>
             </table>
-            <div class="empty-state" id="empty-state" hidden><span class="empty-icon">⌕</span><strong>Nenhum pedido encontrado</strong><p>Ajuste os filtros ou atualize o painel.</p><button class="text-button" id="clear-filters" type="button">Limpar filtros</button></div>
+            <div class="empty-state" id="empty-state" hidden>
+              <span class="empty-illustration" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none"><rect x="8" y="9" width="32" height="30" rx="7" stroke="currentColor" stroke-width="1.6"/><path d="M16 19h16M16 25h11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="34" cy="33" r="7" fill="var(--surface)" stroke="currentColor" stroke-width="1.6"/><path d="m32 33 1.4 1.4L36 32" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              <strong>Nenhum pedido nesta lista</strong><p>Quando uma encomenda chegar, ela aparecerá aqui.</p><button class="text-button" id="clear-filters" type="button">Limpar filtros</button>
+            </div>
           </div>
-          <footer class="table-footer"><span id="result-count">Carregando pedidos</span><span id="last-updated">—</span></footer>
+          <footer class="table-footer"><span id="result-count">Carregando pedidos</span><span class="last-updated" id="last-updated">—</span></footer>
+        </section>
+
+        <section class="content-card agenda-card" id="agenda-section" hidden>
+          <div class="section-header agenda-header">
+            <div><span class="section-kicker">ORGANIZAÇÃO DA COZINHA</span><h2>Agenda da produção</h2><p>Pedidos confirmados em ordem de retirada.</p></div>
+            <div class="agenda-mode" role="group" aria-label="Visualização da agenda">
+              <button type="button" class="agenda-mode-button is-active" data-agenda-mode="day" aria-pressed="true">Dia</button>
+              <button type="button" class="agenda-mode-button" data-agenda-mode="week" aria-pressed="false">Semana</button>
+            </div>
+          </div>
+          <div class="agenda-toolbar">
+            <div class="agenda-navigation"><button type="button" class="agenda-nav-button" id="agenda-previous" aria-label="Período anterior">‹</button><button type="button" class="agenda-today-button" id="agenda-today">Hoje</button><button type="button" class="agenda-nav-button" id="agenda-next" aria-label="Próximo período">›</button></div>
+            <strong id="agenda-period-label"></strong>
+          </div>
+          <div id="agenda-content" class="agenda-content"></div>
+          <div class="production-board-wrap">
+            <div class="production-board-heading"><div><span class="section-kicker">ANDAMENTO</span><h3>Produção por setor</h3><p>Só aparecem os setores com itens; a Padaria reúne suas áreas internas.</p></div><button class="text-button" id="refresh-production" type="button">Atualizar</button></div>
+            <div id="production-board" class="production-board" aria-live="polite"><div class="agenda-empty"><strong>Entre na operação para carregar o andamento</strong></div></div>
+          </div>
         </section>
 
         <section class="settings-card" id="settings-section" hidden>
-          <div class="section-header">
-            <div><h2>Configuração da operação</h2><p>Cadastre os números usados pelo workflow para enviar e receber atualizações.</p></div>
+          <div class="section-header settings-heading">
+            <div><span class="section-kicker">PREFERÊNCIAS DA OPERAÇÃO</span><h2>Contatos e integrações</h2><p>Os números padrão são sincronizados com o Supabase e usados nos avisos da operação.</p></div>
             <span class="status-pill status-demo" id="settings-connection-state">Sincronização pendente</span>
           </div>
           <div class="settings-body">
             <form id="settings-form" class="settings-form">
-              <label class="field">
-                <span>Número do WhatsApp da padaria</span>
-                <small>Destino para receber novos pedidos e responder à cozinha.</small>
-                <input id="bakery-phone" name="bakery_phone_e164" type="tel" inputmode="tel" autocomplete="tel" placeholder="+55 11 99999-9999" required>
-              </label>
-              <label class="field">
-                <span>Número do WhatsApp da fiscal</span>
-                <small>Recebe confirmações, recusas e avisos de pedido pronto.</small>
-                <input id="fiscal-phone" name="fiscal_phone_e164" type="tel" inputmode="tel" autocomplete="tel" placeholder="+55 11 99999-9999" required>
-              </label>
-              <label class="field">
-                <span>WhatsApp padrão do cliente</span>
-                <small>Preenche o telefone ao abrir um pedido novo; você pode alterar para cada cliente.</small>
-                <input id="customer-phone-setting" name="customer_phone_e164" type="tel" inputmode="tel" autocomplete="tel" placeholder="+55 11 99999-9999" required>
-              </label>
-              <div class="settings-actions">
-                <p id="settings-save-status" role="status" aria-live="polite">Os contatos ainda não estão conectados ao workflow.</p>
-                <button class="primary-button settings-save-button" type="submit">Salvar números</button>
-              </div>
+              <div class="settings-form-heading"><div><h3>WhatsApps da equipe</h3><p>Cadastre os contatos que já possui; os demais podem ser adicionados depois. Informe com DDD.</p></div><span class="settings-form-icon" aria-hidden="true">01</span></div>
+              <label class="field contact-field"><span>Número da padaria</span><small>Recebe novos pedidos e pode responder à operação.</small><span class="phone-input"><span aria-hidden="true">＋55</span><input id="bakery-phone" name="bakery_phone_e164" type="tel" inputmode="tel" autocomplete="tel" placeholder="11 99999-9999"></span></label>
+              <label class="field contact-field"><span>Número da fiscal</span><small>Recebe confirmações e avisos importantes da produção.</small><span class="phone-input"><span aria-hidden="true">＋55</span><input id="fiscal-phone" name="fiscal_phone_e164" type="tel" inputmode="tel" autocomplete="tel" placeholder="11 99999-9999"></span></label>
+              <label class="field contact-field"><span>WhatsApp padrão do cliente</span><small>Sugestão para novos pedidos; pode ser alterada em cada encomenda.</small><span class="phone-input"><span aria-hidden="true">＋55</span><input id="customer-phone-setting" name="customer_phone_e164" type="tel" inputmode="tel" autocomplete="tel" placeholder="11 99999-9999"></span></label>
+              <label class="field contact-field"><span>WhatsApp do açougue</span><small>Recebe apenas os produtos atribuídos ao setor Açougue.</small><span class="phone-input"><span aria-hidden="true">＋55</span><input id="butcher-phone" name="butcher_phone_e164" type="tel" inputmode="tel" autocomplete="tel" placeholder="11 99999-9999"></span></label>
+              <label class="field contact-field"><span>WhatsApp dos frios</span><small>Recebe apenas os produtos atribuídos ao setor Frios.</small><span class="phone-input"><span aria-hidden="true">＋55</span><input id="cold-cuts-phone" name="cold_cuts_phone_e164" type="tel" inputmode="tel" autocomplete="tel" placeholder="11 99999-9999"></span></label>
+              <div class="settings-actions"><p id="settings-save-status" role="status" aria-live="polite">Carregando os contatos da operação…</p><button class="primary-button settings-save-button" type="submit">Salvar alterações <span aria-hidden="true">→</span></button></div>
             </form>
-            <div class="settings-callout">
-              <strong>Conexão com o workflow</strong>
-              <p>Depois de publicar o rascunho no n8n, a dashboard envia os três números pela rota autenticada de configurações. Nenhuma chave da Z-API ou do Supabase é armazenada nesta tela.</p>
-            </div>
-            <div class="integration-list">
-              <div class="setting-row"><span>Pedidos e histórico</span><span>Supabase via API do n8n</span><span class="status-pill status-demo" id="orders-api-state">Pendente</span></div>
-              <div class="setting-row"><span>Atualização de status</span><span>Evento processado pelo workflow</span><span class="status-pill status-demo" id="actions-api-state">Pendente</span></div>
-              <div class="setting-row"><span>Contatos padaria/fiscal/cliente</span><span>Configuração sincronizada pelo workflow</span><span class="status-pill status-demo" id="contacts-api-state">Pendente</span></div>
+
+            <aside class="settings-callout"><span class="callout-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="10" width="14" height="11" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 10V7a4 4 0 1 1 8 0v3m-4 4v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><div><strong>Credenciais protegidas no servidor</strong><p>As chaves do Supabase e da Z-API ficam nas variáveis de ambiente do servidor. Esta tela guarda somente os contatos da operação.</p></div></aside>
+
+            <div class="integration-panel"><div class="integration-heading"><div><h3>Estado das integrações</h3><p>Conexões usadas pelo painel neste momento.</p></div><span class="integration-live"><span></span>STATUS</span></div>
+              <div class="integration-list">
+                <div class="setting-row"><span class="integration-symbol" aria-hidden="true">DB</span><span class="integration-name"><strong>Pedidos e histórico</strong><small>Banco operacional Supabase</small></span><span class="status-pill status-demo" id="orders-api-state">Pendente</span></div>
+                <div class="setting-row"><span class="integration-symbol" aria-hidden="true">↗</span><span class="integration-name"><strong>Atualização de status</strong><small>Processada pelo backend seguro</small></span><span class="status-pill status-demo" id="actions-api-state">Pendente</span></div>
+                <div class="setting-row"><span class="integration-symbol" aria-hidden="true">WA</span><span class="integration-name"><strong>Contatos da operação</strong><small>Padaria, fiscal, Açougue, Frios e cliente padrão</small></span><span class="status-pill status-demo" id="contacts-api-state">Pendente</span></div>
+              </div>
             </div>
           </div>
         </section>
 
-        <footer class="page-footer"><span>Gestão de Encomendas</span><span>Operação · <span id="footer-year">2026</span></span></footer>
+        <footer class="page-footer"><span>Encomendas <span class="footer-separator">·</span> Operação da padaria</span><span>Atualizado em <span id="footer-year">2026</span></span></footer>
       </div>
     </main>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
   <dialog id="api-access-dialog" class="order-dialog access-dialog">
     <form method="dialog" class="dialog-top"><button class="dialog-close" aria-label="Fechar">×</button></form>
-    <h2 class="dialog-title">Acesso à operação</h2>
-    <p class="dialog-subtitle">Use o token de acesso criado no n8n. Ele fica somente nesta sessão e não é salvo no arquivo da dashboard.</p>
+    <span class="dialog-eyebrow">ACESSO SEGURO</span><h2 class="dialog-title">Entrar na operação</h2>
+    <p class="dialog-subtitle">Informe o valor definido em <code>DASHBOARD_ACCESS_TOKEN</code> no ambiente do servidor. Ele será trocado por uma sessão segura neste navegador; a credencial não fica salva na página.</p>
     <form id="api-access-form" class="new-order-form">
-      <label class="field"><span>Token de acesso</span><input id="api-token-input" type="password" autocomplete="current-password" required></label>
-      <div class="dialog-actions"><span id="api-access-status" role="status"></span><button class="primary-button" type="submit">Conectar painel</button></div>
-    </form>
-  </dialog>
-  <dialog id="order-dialog" class="order-dialog">
-    <form method="dialog" class="dialog-top"><button class="dialog-close" aria-label="Fechar">×</button></form>
-    <div id="dialog-content"></div>
-  </dialog>
-  <dialog id="new-order-dialog" class="order-dialog new-order-dialog">
-    <form method="dialog" class="dialog-top"><button class="dialog-close" aria-label="Fechar">×</button></form>
-    <h2 class="dialog-title">Novo pedido</h2>
-    <p class="dialog-subtitle">O pedido será registrado pelo workflow e ficará no histórico.</p>
-    <form id="new-order-form" class="new-order-form">
-      <label class="field"><span>Nome do cliente</span><input name="customer_name" required></label>
-      <label class="field"><span>WhatsApp do cliente</span><input id="new-order-customer-phone" name="customer_phone" type="tel" inputmode="tel" placeholder="+55 11 99999-9999" required></label>
-      <label class="field"><span>WhatsApp da fiscal</span><input id="new-order-fiscal-phone" name="fiscal_phone" type="tel" inputmode="tel" required></label>
-      <div class="field-pair">
-        <label class="field"><span>Data de retirada</span><input name="pickup_date" type="date" required></label>
-        <label class="field"><span>Horário</span><input name="pickup_time" type="time" required></label>
-      </div>
-      <label class="field"><span>Produtos e quantidades</span><textarea name="items" rows="4" placeholder="2x Pão de Queijo 50g&#10;1x Bolo de cenoura" required></textarea></label>
-      <label class="field"><span>Local e observações</span><textarea name="notes" rows="2"></textarea></label>
-      <div class="dialog-actions"><span id="new-order-status" role="status"></span><button class="primary-button" type="submit" disabled>Registrar pedido</button></div>
+      <label class="field"><span>Credencial da operação</span><input id="api-token-input" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" required></label>
+      <div class="dialog-actions"><span id="api-access-status" role="status"></span><button class="primary-button" type="submit">Entrar na dashboard <span aria-hidden="true">→</span></button></div>
     </form>
   </dialog>
 
-  <script src="config.js"></script>
-  <script src="app.js"></script>
+  <dialog id="order-dialog" class="order-dialog"><form method="dialog" class="dialog-top"><button class="dialog-close" aria-label="Fechar">×</button></form><div id="dialog-content"></div></dialog>
+
+  <dialog id="new-order-dialog" class="order-dialog new-order-dialog">
+    <form method="dialog" class="dialog-top"><button class="dialog-close" aria-label="Fechar">×</button></form>
+    <span class="dialog-eyebrow">NOVA ENCOMENDA</span><h2 class="dialog-title">Registrar pedido</h2><p class="dialog-subtitle">Preencha os detalhes para incluir a encomenda na operação.</p>
+    <form id="new-order-form" class="new-order-form">
+      <label class="field"><span>Nome do cliente</span><input name="customer_name" autocomplete="name" required></label>
+      <label class="field"><span>WhatsApp do cliente</span><input id="new-order-customer-phone" name="customer_phone" type="tel" inputmode="tel" placeholder="+55 11 99999-9999" required></label>
+      <label class="field"><span>WhatsApp da fiscal <small>(opcional)</small></span><input id="new-order-fiscal-phone" name="fiscal_phone" type="tel" inputmode="tel"></label>
+      <div class="field-pair"><label class="field"><span>Data de retirada</span><input name="pickup_date" type="date" required></label><label class="field"><span>Horário</span><input name="pickup_time" type="time" required></label></div>
+      <fieldset class="field item-editor-field"><legend>Produtos, quantidades e setores</legend><p class="item-editor-hint">Adicione cada produto e escolha o setor responsável. O pedido pode envolver um, dois ou os três setores; só os setores escolhidos receberão seus itens.</p><div class="item-editor" id="dashboard-order-items"><div data-item-list></div><button class="text-button item-add-button" data-add-item type="button">＋ Adicionar produto</button><span class="item-editor-status" data-item-status role="status"></span></div></fieldset>
+      <label class="field"><span>Local de retirada</span><input name="pickup_location" autocomplete="street-address" required></label>
+      <label class="field"><span>Observações <small>(opcional)</small></span><textarea name="notes" rows="2"></textarea></label>
+      <div class="dialog-actions"><span id="new-order-status" role="status"></span><button class="primary-button" type="submit" disabled>Registrar pedido <span aria-hidden="true">→</span></button></div>
+    </form>
+  </dialog>
+
+  <script type="module" src="/src/dashboard/config.js"></script>
+  <script type="module" src="/src/dashboard/app.js"></script>
 </body>
 </html>

@@ -1,1 +1,16 @@
 /.dashboard-server.pid
+# Credenciais locais: carregadas pelo servidor de desenvolvimento, nunca enviadas ao Git.
+/.env
+/.env.*
+# Modelo sem segredos para documentar os nomes esperados.
+!/.env.example
+/node_modules/
+/dist/
+/.vercel/
+/.workflow-data/
+# Metadados locais da CLI do Supabase.
+/supabase/.temp/
+# Cópias temporárias geradas pelo script de build; os arquivos fonte ficam no repositório.
+/public/
+
+/.swc

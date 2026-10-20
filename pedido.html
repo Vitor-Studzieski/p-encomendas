@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#17372d">
+  <title>Registrar pedido · Encomendas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/shared/styles.css">
+  <link rel="stylesheet" href="/src/forms/forms.css">
+</head>
+<body class="public-page">
+  <main class="public-wrap">
+    <div class="public-brand"><span class="public-brand-mark" aria-hidden="true">♨</span>Encomendas · Operação</div>
+    <section class="public-card">
+      <h1>Registrar encomenda</h1>
+      <p>Preencha os dados do cliente e atribua cada produto ao setor responsável. Um pedido pode incluir itens da Padaria, do Açougue, dos Frios ou dos três setores.</p>
+      <form id="public-order-form" class="public-form">
+        <label class="field"><span>Nome do cliente</span><input name="customer_name" autocomplete="name" required></label>
+        <label class="field"><span>WhatsApp do cliente</span><input name="customer_phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+55 11 99999-9999" required></label>
+        <div class="field-pair">
+          <label class="field"><span>Data de retirada</span><input name="requested_date" type="date" required></label>
+          <label class="field"><span>Horário</span><input name="requested_time" type="time" required></label>
+        </div>
+        <label class="field"><span>Local de retirada</span><input name="pickup_location" autocomplete="street-address" required></label>
+        <fieldset class="field item-editor-field"><legend>Produtos, quantidades e setores</legend><p class="item-editor-hint">Adicione cada produto e escolha o setor responsável. O pedido pode envolver um, dois ou os três setores; só os setores escolhidos receberão seus itens.</p><div class="item-editor" id="public-order-items"><div data-item-list></div><button class="text-button item-add-button" data-add-item type="button">＋ Adicionar produto</button><span class="item-editor-status" data-item-status role="status"></span></div></fieldset>
+        <label class="field"><span>Observações <small>(opcional)</small></span><textarea name="notes" rows="2"></textarea></label>
+        <span id="form-status" role="status" aria-live="polite"></span>
+        <button class="public-submit" type="submit">Enviar encomenda <span aria-hidden="true">→</span></button>
+      </form>
+    </section>
+  </main>
+  <script type="module" src="/src/orders/order-form.js"></script>
+</body>
+</html>

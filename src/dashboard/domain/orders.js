@@ -1,0 +1,121 @@
+export const STATUS = Object.freeze({
+  awaiting_confirmation: "Aguardando confirmação",
+  confirmed: "Aguardando produção",
+  preparing: "Em fabricação",
+  needs_attention: "Precisa de atenção",
+  ready: "Pronto para retirada",
+  rejected: "Recusado",
+  cancelled: "Cancelado",
+  picked_up: "Retirado"
+});
+
+export const terminalStatuses = new Set(["picked_up", "rejected", "cancelled"]);
+export const agendaStatuses = new Set(["confirmed", "preparing", "needs_attention", "ready"]);
+export const today = new Date();
+
+export function localDateISO(offsetDays) {
+  const value = new Date();
+  value.setDate(value.getDate() + offsetDays);
+  return value.getFullYear() + "-" + String(value.getMonth() + 1).padStart(2, "0") + "-" + String(value.getDate()).padStart(2, "0");
+}
+
+export function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, character => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  })[character]);
+}
+
+export function prettyDate(value) {
+  if (!value) return "Sem data";
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(String(value)) ? new Date(String(value) + "T00:00:00") : new Date(value);
+  if (Number.isNaN(date.getTime())) return "Sem data";
+  const sameDay = date.toDateString() === today.toDateString();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const prefix = sameDay ? "Hoje, " : date.toDateString() === yesterday.toDateString() ? "Ontem, " : "";
+  return prefix + new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" }).format(date);
+}
+
+export function localDateFromISO(value) {
+  const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+export function dateKey(date) {
+  return date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0") + "-" + String(date.getDate()).padStart(2, "0");
+}
+
+export function startOfWeek(date) {
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  start.setDate(start.getDate() - (start.getDay() + 6) % 7);
+  return start;
+}
+
+export function shortDate(date) {
+  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" }).format(date).replace(".", "");
+}
+
+export function normalizeStatus(value) {
+  const aliases = { pending: "awaiting_confirmation", accepted: "confirmed", in_progress: "preparing", in_production: "preparing", completed: "ready", collected: "picked_up", fulfilled: "picked_up", refused: "rejected", blocked: "needs_attention", needs_attention: "needs_attention" };
+  const status = aliases[String(value || "").toLowerCase()] || String(value || "").toLowerCase();
+  return STATUS[status] ? status : "awaiting_confirmation";
+}
+
+export function normalizeOrder(row) {
+  const customer = row.customer || {};
+  const items = row.items || row.order_items || [];
+  return {
+    id: row.display_id || row.external_order_id || row.order_number || row.id || "Sem identificação",
+    customer: customer.name || row.customer_name || "Cliente",
+    phone: customer.phone_e164 || customer.phone || row.customer_phone || "",
+    fiscalPhone: row.fiscal_phone_e164 || row.fiscal_phone || row.fiscalPhone || "",
+    items: Array.isArray(items) ? items.map(item => ({ name: item.product_name || item.product?.name || item.name || "Produto", quantity: item.quantity ?? 1, sector: item.sector?.name || item.sector_name || "", sectorId: item.sector_id || item.sector?.id || "" })) : [],
+    itemsSummary: row.items_summary || row.item_summary || "",
+    sector: row.sector_name || row.sector?.name || "",
+    pickupDate: row.requested_date || row.pickup_date || row.scheduled_for || row.pickup_at || "",
+    pickupTime: row.requested_time || row.pickup_time || row.scheduled_time || "",
+    pickupLocation: row.pickup_location || row.delivery_address || "",
+    status: normalizeStatus(row.status),
+    notes: row.notes || "",
+    dueAt: row.due_at || row.dueAt || "",
+    createdAt: row.created_at || ""
+  };
+}
+
+export function phoneToE164(rawValue) {
+  let digits = String(rawValue || "").replace(/\D/g, "");
+  if (digits.length === 10 || digits.length === 11) digits = "55" + digits;
+  if (!digits.startsWith("55") || (digits.length !== 12 && digits.length !== 13)) {
+    throw new Error("Informe um WhatsApp brasileiro com DDD, como +55 11 99999-9999.");
+  }
+  return "+" + digits;
+}
+
+export function isOverdue(order) {
+  if (terminalStatuses.has(order.status) || order.status === "ready") return false;
+  let deadline = order.dueAt ? new Date(order.dueAt) : null;
+  if ((!deadline || Number.isNaN(deadline.getTime())) && order.pickupDate && order.pickupTime) {
+    const localDate = localDateFromISO(order.pickupDate);
+    const [hours, minutes] = String(order.pickupTime).split(":").map(Number);
+    if (localDate && Number.isFinite(hours) && Number.isFinite(minutes)) {
+      localDate.setHours(hours, minutes, 0, 0);
+      deadline = localDate;
+    }
+  }
+  return Boolean(deadline && !Number.isNaN(deadline.getTime()) && deadline.getTime() < Date.now());
+}
+
+export function orderItemsLabel(order) {
+  const details = order.items.map(item => Number(item.quantity) + "× " + item.name).join(" · ");
+  return details || order.itemsSummary || "Itens não informados";
+}
+
+export function availableActions(order) {
+  const actions = {
+    awaiting_confirmation: [{ action: "request_review", label: "Pedir análise da fiscal" }, { action: "accept", label: "Confirmar pedido" }, { action: "reject", label: "Encerrar após avisar cliente", danger: true }],
+    ready: [{ action: "fulfill", label: "Confirmar retirada" }]
+  };
+  return actions[order.status] || [];
+}

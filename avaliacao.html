@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#17372d">
+  <title>Avalie seu pedido · Encomendas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/shared/styles.css">
+  <link rel="stylesheet" href="/src/forms/forms.css">
+</head>
+<body class="public-page">
+  <main class="survey-wrap">
+    <div class="public-brand"><span class="public-brand-mark" aria-hidden="true">♨</span>Encomendas · Padaria</div>
+    <section class="survey-card">
+      <h1>Como foi seu pedido?</h1>
+      <p>Sua opinião ajuda a padaria a melhorar o atendimento e a produção.</p>
+      <form id="survey-form">
+        <label for="rating">Sua nota</label>
+        <select id="rating" name="rating" required>
+          <option value="">Escolha de 1 a 5</option>
+          <option value="5">5 — Excelente</option>
+          <option value="4">4 — Muito bom</option>
+          <option value="3">3 — Bom</option>
+          <option value="2">2 — Poderia melhorar</option>
+          <option value="1">1 — Ruim</option>
+        </select>
+        <label class="sr-only" for="survey-comment">Comentário opcional</label>
+        <textarea id="survey-comment" name="comment" rows="4" maxlength="1000" placeholder="Comentário (opcional)"></textarea>
+        <button class="survey-submit" type="submit">Enviar avaliação <span aria-hidden="true">→</span></button>
+        <div id="survey-status" role="status" aria-live="polite"></div>
+      </form>
+    </section>
+  </main>
+  <script type="module" src="/src/surveys/satisfaction-form.js"></script>
+</body>
+</html>

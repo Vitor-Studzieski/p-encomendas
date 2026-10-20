@@ -8,8 +8,8 @@ if (!(Test-Path -LiteralPath $pidPath)) {
 
 $serverPid = [int](Get-Content -LiteralPath $pidPath -Raw)
 $process = Get-CimInstance Win32_Process -Filter "ProcessId = $serverPid" -ErrorAction SilentlyContinue
-$serverPath = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot "server.js"))
-if ($process -and $process.CommandLine -like "*$serverPath*") {
+$vitePath = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot "node_modules\vite\bin\vite.js"))
+if ($process -and $process.CommandLine -like "*$vitePath*") {
   Stop-Process -Id $serverPid -ErrorAction SilentlyContinue
 }
 

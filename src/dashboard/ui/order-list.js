@@ -1,0 +1,55 @@
+import { STATUS, escapeHtml, localDateISO, prettyDate, terminalStatuses } from "../domain/orders.js";
+
+export function createOrderListRenderer({ getOrders, getActiveView, onOpenOrder }) {
+  const table = document.getElementById("orders-table");
+  const searchInput = document.getElementById("search-input");
+  const statusFilter = document.getElementById("status-filter");
+  const dateFilter = document.getElementById("date-filter");
+
+  function filteredOrders() {
+    let rows = getOrders().slice();
+    const query = searchInput.value.trim().toLocaleLowerCase("pt-BR");
+    const status = statusFilter.value;
+    if (getActiveView() === "history") rows = rows.filter(order => terminalStatuses.has(order.status));
+    if (getActiveView() === "orders") rows = rows.filter(order => !terminalStatuses.has(order.status));
+    if (status !== "all") rows = rows.filter(order => order.status === status);
+    if (dateFilter.value === "today") {
+      rows = rows.filter(order => {
+        if (!order.pickupDate) return false;
+        const date = /^\d{4}-\d{2}-\d{2}$/.test(String(order.pickupDate))
+          ? String(order.pickupDate)
+          : new Date(order.pickupDate).toLocaleDateString("en-CA");
+        return date === localDateISO(0);
+      });
+    }
+    if (query) rows = rows.filter(order => [order.id, order.customer, order.phone, order.items.map(item => item.name).join(" "), order.itemsSummary, order.sector].join(" ").toLocaleLowerCase("pt-BR").includes(query));
+    return rows.sort((a, b) => (String(a.pickupDate) + a.pickupTime).localeCompare(String(b.pickupDate) + b.pickupTime));
+  }
+
+  function renderRows() {
+    const orders = getOrders();
+    const rows = filteredOrders();
+    table.innerHTML = rows.map(order => {
+      const itemsText = order.items.map(item => Number(item.quantity) + "× " + item.name).join(" · ") || order.itemsSummary;
+      const initials = order.customer.split(/\s+/).slice(0, 2).map(name => name[0] || "").join("").toUpperCase();
+      return "<tr>" +
+        "<td data-label=\"Encomenda\"><span class=\"order-id\">" + escapeHtml(order.id) + "</span><span class=\"order-date\">" + escapeHtml(prettyDate(order.pickupDate)) + "</span></td>" +
+        "<td data-label=\"Cliente\"><div class=\"customer-cell\"><span class=\"customer-avatar\" aria-hidden=\"true\">" + escapeHtml(initials) + "</span><span><span class=\"customer-name\">" + escapeHtml(order.customer) + "</span><span class=\"customer-phone\">" + escapeHtml(order.phone || "—") + "</span></span></div></td>" +
+        "<td data-label=\"Itens\"><div class=\"items-text\">" + escapeHtml(itemsText || "Itens não informados") + "</div></td>" +
+        "<td data-label=\"Retirada\"><span class=\"pickup-time\">" + escapeHtml(order.pickupTime || "A combinar") + "</span><span class=\"pickup-day\">" + escapeHtml(order.pickupLocation || prettyDate(order.pickupDate)) + "</span></td>" +
+        "<td data-label=\"Etapa\"><span class=\"status-pill status-" + escapeHtml(order.status) + "\">" + escapeHtml(STATUS[order.status]) + "</span></td>" +
+        "<td data-label=\"Ações\"><button class=\"row-action\" data-order-id=\"" + escapeHtml(order.id) + "\" aria-label=\"Abrir pedido " + escapeHtml(order.id) + "\" type=\"button\">•••</button></td></tr>";
+    }).join("");
+
+    document.getElementById("empty-state").hidden = rows.length > 0;
+    document.getElementById("result-count").textContent = "Mostrando " + rows.length + (rows.length === 1 ? " pedido" : " pedidos");
+    document.getElementById("nav-order-count").textContent = String(orders.length).padStart(2, "0");
+    document.getElementById("metric-total").textContent = String(orders.filter(order => !terminalStatuses.has(order.status)).length).padStart(2, "0");
+    document.getElementById("metric-pending").textContent = String(orders.filter(order => order.status === "awaiting_confirmation").length).padStart(2, "0");
+    document.getElementById("metric-preparing").textContent = String(orders.filter(order => order.status === "preparing").length).padStart(2, "0");
+    document.getElementById("metric-ready").textContent = String(orders.filter(order => order.status === "ready").length).padStart(2, "0");
+    table.querySelectorAll("[data-order-id]").forEach(button => button.addEventListener("click", () => onOpenOrder(button.dataset.orderId)));
+  }
+
+  return { filteredOrders, renderRows };
+}
