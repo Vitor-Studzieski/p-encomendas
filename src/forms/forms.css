@@ -11,6 +11,13 @@
 .public-form .field > span { color: #34453b; font-size: 12px; font-weight: 700; }
 .public-form input, .public-form textarea, .survey-card select, .survey-card textarea { width: 100%; min-height: 46px; border: 1px solid var(--line-strong); border-radius: 10px; padding: 11px 13px; color: var(--ink); background: #fff; font: 13px/1.5 "DM Sans", sans-serif; }
 .public-form textarea, .survey-card textarea { min-height: 84px; resize: vertical; }
+.public-form .order-text-hint { color: #7b887f; font-size: 10px; font-weight: 500; line-height: 1.5; }
+.order-text-preview { border: 1px solid #d9e9db; border-radius: 11px; padding: 13px 15px; color: #34453b; background: #f5faf4; font-size: 12px; line-height: 1.55; }
+.order-text-preview[hidden] { display: none; }
+.order-text-preview > strong { color: #234e37; font: 750 13px Manrope, "DM Sans", sans-serif; }
+.order-text-preview-sector { margin: 5px 0 8px; color: #5f7064; font-weight: 700; }
+.order-text-preview ul { display: grid; gap: 3px; margin: 0; padding-left: 18px; }
+.order-text-preview-error { border-color: #f0d9d4; color: #9b5944; background: #fff8f6; }
 .item-editor-field { min-width: 0; border: 0; margin: 0; padding: 0; }
 .item-editor-field > legend { margin: 0 0 8px; padding: 0; color: #34453b; font-size: 12px; font-weight: 700; }
 .item-editor-hint { margin: -2px 0 9px; color: #7b887f; font-size: 10px; line-height: 1.5; }

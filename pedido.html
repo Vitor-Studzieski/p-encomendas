@@ -26,6 +26,8 @@
           <label class="field"><span>Horário</span><input name="requested_time" type="time" required></label>
         </div>
         <label class="field"><span>Local de retirada</span><input name="pickup_location" autocomplete="street-address" required></label>
+        <label class="field"><span>Pedido em texto</span><textarea id="public-order-text" name="order_text" rows="3" placeholder="Ex.: 2 pães de queijo, 1 bolo de cenoura"></textarea><span class="order-text-hint">Escreva os produtos e quantidades. Vou identificar no catálogo e pedir uma confirmação para a Confeitaria. Para usar o preenchimento manual abaixo, apague este texto.</span></label>
+        <section id="order-text-preview" class="order-text-preview" role="status" aria-live="polite" hidden></section>
         <fieldset class="field item-editor-field"><legend>Produtos, quantidades e setores</legend><p class="item-editor-hint">Adicione cada produto e escolha o setor responsável. O pedido pode envolver um, dois ou os três setores; só os setores escolhidos receberão seus itens.</p><div class="item-editor" id="public-order-items"><div data-item-list></div><button class="text-button item-add-button" data-add-item type="button">＋ Adicionar produto</button><span class="item-editor-status" data-item-status role="status"></span></div></fieldset>
         <label class="field"><span>Observações <small>(opcional)</small></span><textarea name="notes" rows="2"></textarea></label>
         <span id="form-status" role="status" aria-live="polite"></span>

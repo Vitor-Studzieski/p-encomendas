@@ -58,7 +58,40 @@ export async function mountOrderItems(container) {
     list.replaceChildren();
     rowNumber = 0;
     addRow();
+    setReadOnly(false);
     if (status) status.textContent = "";
+  }
+
+  function setItems(items) {
+    list.replaceChildren();
+    rowNumber = 0;
+    for (const item of items || []) {
+      addRow();
+      const row = list.lastElementChild;
+      row.querySelector("[data-item-name]").value = item.name || "";
+      row.querySelector("[data-item-quantity]").value = String(item.quantity ?? 1);
+      row.querySelector("[data-item-sector]").value = item.sector_id || "";
+    }
+    if (!list.children.length) addRow();
+  }
+
+  function getRawItems() {
+    return Array.from(list.querySelectorAll(".order-item-row")).map(row => {
+      const sectorSelect = row.querySelector("[data-item-sector]");
+      const sectorOption = sectorSelect.selectedOptions[0];
+      return {
+        name: row.querySelector("[data-item-name]").value,
+        quantity: row.querySelector("[data-item-quantity]").value,
+        sector_id: sectorSelect.value,
+        sector: sectorOption?.dataset.sectorName || sectorOption?.textContent || ""
+      };
+    });
+  }
+
+  function setReadOnly(readOnly) {
+    container.querySelectorAll("[data-item-name], [data-item-quantity], [data-item-sector], [data-add-item], .item-remove-button").forEach(control => {
+      control.disabled = Boolean(readOnly);
+    });
   }
 
   addButton?.addEventListener("click", () => {
@@ -69,5 +102,5 @@ export async function mountOrderItems(container) {
     addRow();
   });
   addRow();
-  return { getItems, reset, sectors };
+  return { getItems, getRawItems, reset, setItems, setReadOnly, sectors };
 }
