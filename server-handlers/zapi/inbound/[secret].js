@@ -49,7 +49,7 @@ module.exports = async function zapiInbound(request, response) {
         const reply = review.warnings.length
           ? "O pedido " + orderRef + " continua pendente para revisão, mas não consegui confirmar o aviso à fiscal. Avise a operação diretamente."
           : "A fiscal foi avisada sobre o pedido " + orderRef + ". Ele continua pendente enquanto ela investiga. Se for possível atender, envie CONFIRMAR " + orderRef + ". Se não for possível, a fiscal avisará o cliente. Não registre uma nova encomenda para essa revisão.";
-        await sendText(phone, reply, { replyTo: payload.messageId });
+        await sendText(phone, reply);
         return json(response, 200, { ok: true, review_requested: true, warnings: review.warnings });
       }
       const candidateMessageId = payload.messageId || payload.zaapId;
@@ -62,7 +62,7 @@ module.exports = async function zapiInbound(request, response) {
         order_ref: orderRef,
         payload: { order: { id: orderRef }, occurred_at: new Date().toISOString() }
       });
-      await sendText(phone, "Recebi sua resposta para o pedido " + orderRef + ". Estou atualizando o painel.", { replyTo: messageId });
+      await sendText(phone, "Recebi sua resposta para o pedido " + orderRef + ". Estou atualizando o painel.");
       return json(response, 200, { ok: true, processed: true, warnings: result.warnings });
     }
 
@@ -79,7 +79,7 @@ module.exports = async function zapiInbound(request, response) {
         order_ref: orderRef,
         payload: { order: { id: orderRef }, customer_informed: true, notify_fiscal: false, occurred_at: new Date().toISOString() }
       });
-      await sendText(phone, "Pedido " + orderRef + " encerrado no painel. O sistema não enviou mensagem ao cliente.", { replyTo: messageId });
+      await sendText(phone, "Pedido " + orderRef + " encerrado no painel. O sistema não enviou mensagem ao cliente.");
       return json(response, 200, { ok: true, closed: true, warnings: result.warnings });
     }
 
@@ -89,12 +89,12 @@ module.exports = async function zapiInbound(request, response) {
       const { createPublicFormToken } = require("../../../lib/public-form-token");
       const formToken = createPublicFormToken();
       const link = baseUrl + "/pedido.html#acesso=" + encodeURIComponent(formToken.access) + "&expira=" + formToken.expiresAt;
-      await sendText(phone, "Use este formulário para registrar o pedido: " + link + "\n\nVocê pode incluir produtos da Padaria, do Açougue e dos Frios no mesmo pedido. Adicione cada produto e selecione o setor responsável; o pedido pode envolver um, dois ou os três setores.\n\nApós investigar um impedimento, avise o cliente diretamente. Se não for possível atender, envie ENCERRAR <número do pedido> para registrar o encerramento.", { replyTo: payload.messageId });
+      await sendText(phone, "Use este formulário para registrar o pedido: " + link + "\n\nVocê pode incluir produtos da Padaria, do Açougue e dos Frios no mesmo pedido. Adicione cada produto e selecione o setor responsável; o pedido pode envolver um, dois ou os três setores.\n\nApós investigar um impedimento, avise o cliente diretamente. Se não for possível atender, envie ENCERRAR <número do pedido> para registrar o encerramento.");
       return json(response, 200, { ok: true, form_link_sent: true });
     }
 
     if (sender === bakery) {
-      await sendText(phone, "Para atualizar um pedido, responda CONFIRMAR <número> se puder produzir ou RECUSAR <número> para pedir análise à fiscal. O pedido continua pendente durante a análise.", { replyTo: payload.messageId });
+      await sendText(phone, "Para atualizar um pedido, responda CONFIRMAR <número> se puder produzir ou RECUSAR <número> para pedir análise à fiscal. O pedido continua pendente durante a análise.");
     }
     return json(response, 200, { ok: true, ignored: true });
   } catch (error) {
