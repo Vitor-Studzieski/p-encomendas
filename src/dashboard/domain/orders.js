@@ -43,7 +43,14 @@ export function orderItemLabel(item) {
   const size = [item?.sizeLabel, item?.size_label, productSize.label,
     typeof item?.size === "string" ? item.size : "", sizeRelation.label]
     .find(value => typeof value === "string" && value.trim()) || "";
-  return String(item?.quantity ?? 1) + "× " + String(name) + (size ? " · " + size : "");
+  const normalizeForComparison = value => String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt-BR")
+    .replace(/[^a-z0-9]/g, "");
+  const normalizedSize = normalizeForComparison(size);
+  const sizeAlreadyInName = Boolean(normalizedSize && normalizeForComparison(name).endsWith(normalizedSize));
+  return String(item?.quantity ?? 1) + "× " + String(name) + (size && !sizeAlreadyInName ? " · " + size : "");
 }
 
 export function prettyDate(value) {
@@ -113,6 +120,7 @@ export function normalizeOrder(row) {
     pickupTime: row.requested_time || row.pickup_time || row.scheduled_time || "",
     pickupLocation: row.pickup_location || row.delivery_address || "",
     status: normalizeStatus(row.status),
+    productionRefused: row.production_refused === true,
     notes: row.notes || "",
     dueAt: row.due_at || row.dueAt || "",
     createdAt: row.created_at || ""
@@ -149,7 +157,10 @@ export function orderItemsLabel(order) {
 
 export function availableActions(order) {
   const actions = {
-    awaiting_confirmation: [{ action: "request_review", label: "Pedir análise da fiscal" }, { action: "accept", label: "Confirmar pedido" }, { action: "reject", label: "Confirmar que não será produzido", danger: true }],
+    awaiting_confirmation: [
+      ...(!order.productionRefused ? [{ action: "request_review", label: "Pedir análise da fiscal" }] : []),
+      ...(order.productionRefused ? [{ action: "accept", label: "Confirmar pedido" }] : [])
+    ],
     ready: [{ action: "fulfill", label: "Confirmar retirada" }]
   };
   return actions[order.status] || [];

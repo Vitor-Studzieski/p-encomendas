@@ -101,10 +101,16 @@ function showOrder(id) {
   const connected = Boolean(config.orderActionEndpoint) && !usingDemoData;
   const itemList = order.items.map(item => "<li>" + escapeHtml(orderItemLabel(item)) + (item.sector ? " <small>· " + escapeHtml(item.sector) + "</small>" : "") + "</li>").join("");
   const itemsMarkup = itemList ? "<ul>" + itemList + "</ul>" : "<div class=\"detail-value\">" + escapeHtml(order.itemsSummary || "Itens não informados") + "</div>";
-  const reasonLabel = order.status === "awaiting_confirmation" ? "Motivo para a fiscal analisar (opcional)" : "";
+  const reasonLabel = order.status === "awaiting_confirmation" && !order.productionRefused ? "Motivo para a fiscal analisar (opcional)" : "";
+  const confirmationHint = order.status === "awaiting_confirmation"
+    ? order.productionRefused
+      ? "<p class=\"connection-hint\">A Padaria recusou inicialmente. Confirme manualmente somente se a equipe encontrou uma alternativa viável.</p>"
+      : "<p class=\"connection-hint\">A Padaria deve responder primeiro pelo WhatsApp. A confirmação manual fica disponível depois que ela responder 2.</p>"
+    : "";
   const actionMarkup = actions.length
     ? "<div class=\"order-actions\"><strong>Atualizar pedido</strong>" +
       (reasonLabel ? "<label class=\"field\"><span>" + reasonLabel + "</span><textarea id=\"action-reason\" rows=\"2\"></textarea></label>" : "") +
+      confirmationHint +
       "<div class=\"dialog-actions\">" + actions.map(action => "<button type=\"button\" class=\"action-button" + (action.danger ? " action-danger" : "") + "\" data-order-action=\"" + action.action + "\"" + (connected ? "" : " disabled") + ">" + action.label + "</button>").join("") + "</div>" +
       (!connected ? "<p class=\"connection-hint\">Ação disponível quando a API autenticada estiver conectada.</p>" : "") + "</div>"
     : "";
@@ -116,7 +122,6 @@ function showOrder(id) {
       "<div><div class=\"detail-label\">WhatsApp do cliente</div><div class=\"detail-value\">" + escapeHtml(order.phone || "—") + "</div></div>" +
       "<div><div class=\"detail-label\">Retirada</div><div class=\"detail-value\">" + escapeHtml(order.pickupTime || "A combinar") + "</div></div>" +
       "<div><div class=\"detail-label\">Situação</div><div class=\"detail-value\"><span class=\"status-pill status-" + escapeHtml(order.status) + "\">" + escapeHtml(STATUS[order.status]) + "</span></div></div>" +
-      "<div><div class=\"detail-label\">Fiscal</div><div class=\"detail-value\">" + escapeHtml(order.fiscalPhone || "—") + "</div></div>" +
       "<div><div class=\"detail-label\">Local de retirada</div><div class=\"detail-value\">" + escapeHtml(order.pickupLocation || "—") + "</div></div>" +
       "<div class=\"detail-items\"><div class=\"detail-label\">Itens</div>" + itemsMarkup + "</div>" +
       "<div><div class=\"detail-label\">Setor</div><div class=\"detail-value\">" + escapeHtml(order.sector || "—") + "</div></div>" +

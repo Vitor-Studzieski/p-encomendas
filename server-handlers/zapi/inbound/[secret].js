@@ -71,7 +71,7 @@ module.exports = async function zapiInbound(request, response) {
     const senderRouteKeys = [...new Set(senderRoutes.map(route => route.key))];
     const isProductionSender = senderRoutes.length > 0;
     const command = text.match(/^\s*(CONFIRMAR|RECUSAR|ENCERRAR)\s+(.+?)\s*$/i);
-    const numericAnswer = text.match(/^\s*([12])\s*$/);
+    const numericAnswer = text.match(/^\s*([12])(?:\s+(.+?))?\s*$/);
 
     const commandDecision = command?.[1].toUpperCase();
     const isProductionDecision = isProductionSender && (
@@ -80,9 +80,9 @@ module.exports = async function zapiInbound(request, response) {
 
     if (isProductionDecision) {
       const decision = numericAnswer ? (numericAnswer[1] === "1" ? "CONFIRMAR" : "RECUSAR") : commandDecision;
-      let orderRef = command ? command[2].trim() : "";
+      let orderRef = command ? command[2].trim() : String(numericAnswer?.[2] || "").trim();
       let selectedOrder = null;
-      if (numericAnswer) {
+      if (numericAnswer && !orderRef) {
         const openOrders = await getOpenProductionOrders();
         const matchingOrders = openOrders.filter(order => {
           const pending = ["awaiting_confirmation", "pending"].includes(String(order.status || "").toLowerCase());
@@ -93,10 +93,10 @@ module.exports = async function zapiInbound(request, response) {
         });
         if (matchingOrders.length !== 1) {
           const reply = matchingOrders.length
-            ? "Não registrei a resposta: há mais de um pedido ativo deste setor. Para evitar atualizar o pedido errado, peça à Fiscal para localizar a encomenda no painel."
+            ? "Há mais de um pedido ativo deste setor. Para a Padaria confirmar pelo WhatsApp sem risco de alterar o pedido errado, responda 1 seguido do código no topo da mensagem. Para informar que não consegue produzir, responda 2 seguido do código. Exemplo: 1 ENC 2026.001.001."
             : decision === "CONFIRMAR"
-              ? "Não encontrei pedido aguardando confirmação destinado a este setor. Confira o painel ou peça à Fiscal para verificar."
-              : "Não encontrei um pedido ativo deste setor para vincular à recusa. Peça à Fiscal para localizar a encomenda no painel.";
+              ? "Não encontrei pedido aguardando confirmação inicial destinado a este setor. Confira se o código no topo da mensagem corresponde a um pedido aberto. Se necessário, peça à operação para verificar o status."
+              : "Não encontrei um pedido ativo deste setor para vincular à resposta. Confira o código e o setor no topo da mensagem.";
           const replyWarnings = await sendEventNotification(phone, reply, {
             tag: "zapi-production-help",
             eventId: "zapi-ack:" + messageId
@@ -122,7 +122,7 @@ module.exports = async function zapiInbound(request, response) {
           const reply = decision === "CONFIRMAR"
             ? "Não registrei a confirmação: este pedido não está aguardando uma resposta inicial deste setor."
             : !assignedToSender
-              ? "Não registrei a recusa: este pedido não contém itens vinculados ao seu setor. Peça à Fiscal para conferir o código e o setor no painel."
+              ? "Não registrei a resposta: este pedido não contém itens vinculados ao seu setor. Confira o código e o setor indicados no topo da mensagem."
               : "A confirmação inicial deste pedido está direcionada a " + leadSector + ". Só esse setor pode responder antes da confirmação.";
           const replyWarnings = await sendEventNotification(phone, reply, {
             tag: "zapi-production-help",
@@ -134,7 +134,7 @@ module.exports = async function zapiInbound(request, response) {
       }
       if (orderRef.length > 180) return json(response, 200, { ok: true, ignored: true });
       if (decision === "RECUSAR") {
-        const review = await requestFiscalReview(orderRef, "", "zapi-review:" + messageId, selectedOrder ? productionReplyLabel(selectedOrder, senderRoutes) : [...new Set(senderRoutes.map(route => route.label))].join(", "));
+        const review = await requestFiscalReview(orderRef, "", "zapi-review:" + messageId, selectedOrder ? productionReplyLabel(selectedOrder, senderRoutes) : [...new Set(senderRoutes.map(route => route.label))].join(", "), "production_whatsapp");
         const reply = review.warnings.length
           ? "Recusa registrada. O pedido continua pendente, mas não consegui confirmar o aviso à Fiscal. Avise a operação diretamente."
           : "Recusa registrada. A Fiscal foi avisada para investigar se é possível viabilizar a produção. O cliente só será avisado depois da análise final da Fiscal.";
@@ -199,7 +199,7 @@ module.exports = async function zapiInbound(request, response) {
 
     if (isProductionSender) {
       const help = "Quando seu setor receber a confirmação inicial do pedido, envie 1 para confirmar. Se não puder produzir seus itens, envie 2 para pedir análise da Fiscal. A recusa é encaminhada primeiro somente à Fiscal; o cliente só é avisado após a análise final.";
-      await sendEventNotification(phone, help + "\n\nA resposta numérica é vinculada quando há somente um pedido compatível com seu setor aguardando resposta. Se houver mais de um, peça à Fiscal para localizar o pedido no painel.", {
+      await sendEventNotification(phone, help + "\n\nSe houver mais de um pedido compatível com seu setor, responda 1 seguido do código no topo para confirmar ou 2 seguido do código para pedir análise. Exemplo: 1 ENC 2026.001.001.", {
         tag: "zapi-production-help",
         eventId: "zapi-message:" + messageId
       });
