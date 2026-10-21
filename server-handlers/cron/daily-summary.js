@@ -22,6 +22,11 @@ function addDays(date, amount) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(value);
 }
 
+function displayDate(date) {
+  const match = String(date || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return match ? match[3] + "/" + match[2] + "/" + match[1] : String(date || "");
+}
+
 module.exports = async function dailySummary(request, response) {
   if (request.method !== "GET") return methodNotAllowed(response, ["GET"]);
   if (!requireCron(request, response)) return;
@@ -40,7 +45,7 @@ module.exports = async function dailySummary(request, response) {
       const date = String(order.requested_date || "");
       if (grouped.has(date)) grouped.get(date).push(order);
     }
-    const lines = ["Resumo da produção — " + today + " e " + tomorrow];
+    const lines = ["Resumo da produção — " + displayDate(today) + " e " + displayDate(tomorrow)];
     for (const [date, rows] of grouped) {
       lines.push("", date === today ? "HOJE" : "AMANHÃ");
       if (!rows.length) {

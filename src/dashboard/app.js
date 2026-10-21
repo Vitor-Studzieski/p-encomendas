@@ -125,7 +125,7 @@ async function performOrderAction(order, action, button) {
   const actionKey = String(order.id) + ":" + action;
   if (pendingOrderActions.has(actionKey)) return;
   const reason = document.getElementById("action-reason")?.value.trim() || "";
-  if (action === "reject" && !window.confirm("A fiscal já avisou o cliente que não será possível atender este pedido? Só encerre depois desse contato.")) return;
+  if (action === "reject" && !window.confirm("A Fiscal já verificou as alternativas e confirmou que não será possível produzir? O cliente receberá uma mensagem automática e a Fiscal deverá entrar em contato depois.")) return;
   pendingOrderActions.add(actionKey);
   button.disabled = true;
   try {
@@ -141,7 +141,7 @@ async function performOrderAction(order, action, button) {
       action,
       reason,
       sector: order.sector,
-      ...(action === "reject" ? { customer_informed: true } : {})
+      ...(action === "reject" ? { fiscal_review_complete: true } : {})
     }) });
     pendingOrderActionIds.delete(actionKey);
     orderDialog.close();

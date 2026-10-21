@@ -149,7 +149,7 @@ export function orderItemsLabel(order) {
 
 export function availableActions(order) {
   const actions = {
-    awaiting_confirmation: [{ action: "request_review", label: "Pedir análise da fiscal" }, { action: "accept", label: "Confirmar pedido" }, { action: "reject", label: "Encerrar após avisar cliente", danger: true }],
+    awaiting_confirmation: [{ action: "request_review", label: "Pedir análise da fiscal" }, { action: "accept", label: "Confirmar pedido" }, { action: "reject", label: "Confirmar que não será produzido", danger: true }],
     ready: [{ action: "fulfill", label: "Confirmar retirada" }]
   };
   return actions[order.status] || [];

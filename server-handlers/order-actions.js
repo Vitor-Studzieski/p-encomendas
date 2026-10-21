@@ -8,8 +8,8 @@ module.exports = async function orderActions(request, response) {
   if (!await requireDashboard(request, response)) return;
   try {
     const body = await readBody(request);
-    if (body.action === "reject" && body.customer_informed !== true) {
-      throw Object.assign(new Error("Confirme que a fiscal já avisou o cliente antes de encerrar o pedido."), { statusCode: 422 });
+    if (body.action === "reject" && body.fiscal_review_complete !== true) {
+      throw Object.assign(new Error("Confirme que a Fiscal concluiu a análise antes de encerrar o pedido."), { statusCode: 422 });
     }
     const result = body.action === "request_review"
       ? await requestFiscalReview(body.external_order_id || body.order_ref, body.reason || "", body.event_id)

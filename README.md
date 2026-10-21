@@ -7,12 +7,12 @@ Dashboard e backend em código para pedidos, agenda de produção e notificaçõ
 - Consulta de pedidos e histórico pela view `public.dashboard_orders`.
 - Cadastro dos contatos da padaria, fiscal, Açougue e Frios, além do WhatsApp padrão do cliente.
 - Criação de pedidos pela dashboard ou pelo formulário público da fiscal, atribuindo cada item ao seu setor.
-- Revisão de impedimentos pela fiscal sem encerrar o pedido; depois da análise, a padaria confirma novamente pelo WhatsApp.
+- Revisão de impedimentos de qualquer setor pela fiscal sem encerrar o pedido; após a análise, a equipe responsável atualiza a encomenda pelo painel.
 - Encaminhamento de listas separadas para Padaria, Açougue e Frios e andamento individual de cada setor no painel.
 - Cada pedido pode envolver um, dois ou os três setores; o painel mostra apenas os envolvidos e reúne as áreas internas da Padaria.
 - Registro de problemas de produção, conclusão de todos os setores e confirmação da retirada por eventos idempotentes.
 - Avisos de WhatsApp enviados pelo backend à Z-API.
-- Webhook de entrada da Z-API: a fiscal recebe o link do formulário; `RECUSAR <id>` pede análise à fiscal e mantém o pedido pendente. Depois da análise, a padaria responde `CONFIRMAR <id>` se puder produzir. Se não puder, a fiscal avisa o cliente e responde `ENCERRAR <id>`.
+- Webhook de entrada da Z-API: a fiscal recebe o link do formulário. Padaria, Confeitaria, Rotisseria, Açougue e Frios podem pedir análise respondendo `2` à mensagem do pedido; o sistema encaminha a solicitação somente à fiscal e mantém o pedido pendente. A resposta numérica é vinculada quando há um único pedido ativo daquele setor. Depois de investigar alternativas, a fiscal pode registrar o encerramento com `ENCERRAR <código>`; só então o cliente recebe a mensagem final, e a fiscal entra em contato com ele.
 - Pesquisa de satisfação enviada duas horas após a retirada, com link assinado.
 - Resumo de produção diário às 06:00 no horário de São Paulo.
 - Limites de tentativas por origem para autenticação, formulário público, pesquisa e callback da Z-API. Os identificadores armazenados no Supabase são HMACs, não endereços IP.
