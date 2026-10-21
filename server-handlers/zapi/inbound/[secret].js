@@ -53,8 +53,8 @@ module.exports = async function zapiInbound(request, response) {
       if (command[1].toUpperCase() === "RECUSAR") {
         const review = await requestFiscalReview(orderRef, "", "zapi-review:" + messageId);
         const reply = review.warnings.length
-          ? "O pedido " + orderRef + " continua pendente para revisão, mas não consegui confirmar o aviso à fiscal. Avise a operação diretamente."
-          : "A fiscal foi avisada sobre o pedido " + orderRef + ". Ele continua pendente enquanto ela investiga. Se for possível atender, envie CONFIRMAR " + orderRef + ". Se não for possível, a fiscal avisará o cliente. Não registre uma nova encomenda para essa revisão.";
+          ? "RECUSA REGISTRADA\nCódigo interno: " + orderRef + "\nO pedido continua pendente, mas não consegui confirmar o aviso à Fiscal. Avise a operação diretamente."
+          : "RECUSA REGISTRADA\nCódigo interno: " + orderRef + "\nA Fiscal foi avisada e o pedido permanece pendente para análise.\n\nSe a equipe confirmar depois que pode produzir, responda:\nCONFIRMAR " + orderRef + "\n\nNão cadastre outro pedido para esta encomenda.";
         const replyWarnings = await sendEventNotification(phone, reply, {
           tag: "zapi-review-ack",
           eventId: "zapi-ack:" + messageId,
@@ -69,7 +69,7 @@ module.exports = async function zapiInbound(request, response) {
         order_ref: orderRef,
         payload: { order: { id: orderRef }, occurred_at: new Date().toISOString() }
       });
-      const replyWarnings = await sendEventNotification(phone, "Recebi sua resposta para o pedido " + orderRef + ". Estou atualizando o painel.", {
+      const replyWarnings = await sendEventNotification(phone, "CONFIRMAÇÃO REGISTRADA\nCódigo interno: " + orderRef + "\nO pedido foi marcado como confirmado no painel.", {
         tag: "zapi-confirmation-ack",
         eventId: "zapi-ack:" + messageId,
         orderRef
@@ -100,7 +100,7 @@ module.exports = async function zapiInbound(request, response) {
       const { createPublicFormToken } = require("../../../lib/public-form-token");
       const formToken = createPublicFormToken();
       const link = baseUrl + "/pedido.html#acesso=" + encodeURIComponent(formToken.access) + "&expira=" + formToken.expiresAt;
-      await sendEventNotification(phone, "Use este formulário para registrar o pedido: " + link + "\n\nVocê pode incluir produtos da Padaria, do Açougue e dos Frios no mesmo pedido. Adicione cada produto e selecione o setor responsável; o pedido pode envolver um, dois ou os três setores.\n\nApós investigar um impedimento, avise o cliente diretamente. Se não for possível atender, envie ENCERRAR <número do pedido> para registrar o encerramento.", {
+      await sendEventNotification(phone, "Use este formulário para registrar o pedido: " + link + "\n\nInclua produtos dos setores Padaria, Confeitaria, Açougue, Frios e Rotisseria. Selecione o setor responsável para cada item; um pedido pode envolver vários setores.\n\nApós investigar um impedimento, avise o cliente diretamente. Se não for possível atender, envie ENCERRAR <código do pedido> para registrar o encerramento.", {
         tag: "zapi-fiscal-form-link",
         eventId: "zapi-message:" + messageId
       });
@@ -108,7 +108,7 @@ module.exports = async function zapiInbound(request, response) {
     }
 
     if (sender === bakery) {
-      await sendEventNotification(phone, "Para atualizar um pedido, responda CONFIRMAR <número> se puder produzir ou RECUSAR <número> para pedir análise à fiscal. O pedido continua pendente durante a análise.", {
+      await sendEventNotification(phone, "Para atualizar um pedido, responda CONFIRMAR <código do pedido> se puder produzir ou RECUSAR <código do pedido> se não puder. A Fiscal será avisada, e o pedido ficará pendente para análise.", {
         tag: "zapi-bakery-help",
         eventId: "zapi-message:" + messageId
       });
