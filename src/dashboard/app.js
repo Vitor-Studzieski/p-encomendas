@@ -2,6 +2,7 @@ import { STATUS, today, normalizeOrder, phoneToE164, escapeHtml, prettyDate, ava
 import { createOrderListRenderer } from "./ui/order-list.js";
 import { createAgendaView } from "./ui/agenda.js";
 import { mountOrderItems } from "../shared/order-items.js";
+import { clearSessionDraft, fingerprintPayload, readSessionDraft, writeSessionDraft } from "../shared/idempotency.js";
 
 let agendaDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 let agendaMode = "day";
@@ -9,6 +10,7 @@ let agendaMode = "day";
 const config = window.ORDER_DASHBOARD_CONFIG || {};
 const apiTokenStorageKey = "order-dashboard-api-token";
 const settingsDraftStorageKey = "order-dashboard-settings-draft";
+const newOrderSubmissionStorageKey = "order-dashboard-new-order-v1";
 try { localStorage.removeItem(settingsDraftStorageKey); } catch { /* Storage can be disabled by the browser. */ }
 const searchInput = document.getElementById("search-input");
 const statusFilter = document.getElementById("status-filter");
@@ -26,6 +28,10 @@ let contactsLoaded = false;
 let toastTimer;
 let productionTasks = [];
 let itemEditor;
+let isSubmittingNewOrder = false;
+let pendingNewOrderSubmission = readSessionDraft(newOrderSubmissionStorageKey);
+const pendingOrderActions = new Set();
+const pendingOrderActionIds = new Map();
 const dashboardItemEditorReady = mountOrderItems(document.getElementById("dashboard-order-items"))
   .then(editor => { itemEditor = editor; })
   .catch(error => { document.getElementById("new-order-status").textContent = error.message; });
@@ -58,6 +64,32 @@ function showToast(message, kind) {
   toastTimer = setTimeout(() => { toast.className = "toast"; }, 3600);
 }
 
+function notificationWarningSummary(warnings) {
+  const recipientByTag = {
+    "order-created-customer": "cliente",
+    "order-confirmed-customer": "cliente",
+    "production-started-customer": "cliente",
+    "production-ready-customer": "cliente",
+    "order-cancelled-customer": "cliente",
+    "order-created-bakery": "Padaria",
+    "production-sector-bakery": "Padaria",
+    "production-sector-butcher": "Açougue",
+    "production-sector-cold_cuts": "Frios",
+    "production-ready-fiscal": "fiscal",
+    "order-review-fiscal": "fiscal",
+    "fiscal-review": "fiscal",
+    "order-rejected-fiscal": "fiscal",
+    "order-cancelled-fiscal": "fiscal",
+    "production-issue-fiscal": "fiscal"
+  };
+  const labels = Array.from(new Set((warnings || []).map(warning => {
+    if (warning.channel === "workflow") return "pesquisa de satisfação";
+    if (warning.channel === "production-routing") return "encaminhamento da produção";
+    return recipientByTag[warning.tag] || "operação";
+  })));
+  return "Não foi possível concluir: " + labels.join(", ") + ".";
+}
+
 function showOrder(id) {
   const order = orders.find(item => String(item.id) === String(id));
   if (!order) return;
@@ -85,16 +117,25 @@ function showOrder(id) {
       "<div class=\"detail-items\"><div class=\"detail-label\">Itens</div>" + itemsMarkup + "</div>" +
       "<div><div class=\"detail-label\">Setor</div><div class=\"detail-value\">" + escapeHtml(order.sector || "—") + "</div></div>" +
       "<div class=\"detail-items\"><div class=\"detail-label\">Observações</div><div class=\"detail-value\">" + escapeHtml(order.notes || "Sem observações") + "</div></div></div>" + actionMarkup;
-  document.querySelectorAll("[data-order-action]").forEach(button => button.addEventListener("click", () => performOrderAction(order, button.dataset.orderAction)));
+  document.querySelectorAll("[data-order-action]").forEach(button => button.addEventListener("click", () => performOrderAction(order, button.dataset.orderAction, button)));
   orderDialog.showModal();
 }
 
-async function performOrderAction(order, action) {
+async function performOrderAction(order, action, button) {
+  const actionKey = String(order.id) + ":" + action;
+  if (pendingOrderActions.has(actionKey)) return;
   const reason = document.getElementById("action-reason")?.value.trim() || "";
   if (action === "reject" && !window.confirm("A fiscal já avisou o cliente que não será possível atender este pedido? Só encerre depois desse contato.")) return;
+  pendingOrderActions.add(actionKey);
+  button.disabled = true;
   try {
-    await requestJson(config.orderActionEndpoint, { method: "POST", body: JSON.stringify({
-      event_id: crypto.randomUUID(),
+    let eventId = pendingOrderActionIds.get(actionKey);
+    if (!eventId) {
+      eventId = crypto.randomUUID();
+      pendingOrderActionIds.set(actionKey, eventId);
+    }
+    const result = await requestJson(config.orderActionEndpoint, { method: "POST", body: JSON.stringify({
+      event_id: eventId,
       external_order_id: order.id,
       customer_phone: order.phone,
       action,
@@ -102,10 +143,22 @@ async function performOrderAction(order, action) {
       sector: order.sector,
       ...(action === "reject" ? { customer_informed: true } : {})
     }) });
+    pendingOrderActionIds.delete(actionKey);
     orderDialog.close();
-    showToast(action === "request_review" ? "Fiscal avisada; o pedido continua pendente." : "Pedido atualizado.", "success");
+    const warnings = Array.isArray(result?.warnings) ? result.warnings : [];
+    if (warnings.length && action === "request_review") {
+      showToast("Pedido continua pendente. " + notificationWarningSummary(warnings) + " Avise a fiscal diretamente.", "error");
+    } else if (warnings.length) {
+      showToast("Pedido atualizado. " + notificationWarningSummary(warnings), "error");
+    } else {
+      showToast(action === "request_review" ? "Fiscal avisada; o pedido continua pendente." : "Pedido atualizado.", "success");
+    }
     await refreshOrders();
   } catch (error) { showToast(error.message || "Não foi possível atualizar o pedido.", "error"); }
+  finally {
+    pendingOrderActions.delete(actionKey);
+    if (button?.isConnected) button.disabled = false;
+  }
 }
 
 function selectView(view) {
@@ -368,7 +421,7 @@ async function performProductionAction(button) {
       completedActions++;
       warnings = warnings.concat(result?.warnings || []);
     }
-    showToast(warnings.length ? "Andamento atualizado; há um aviso WhatsApp pendente." : "Andamento do setor atualizado.", warnings.length ? "error" : "success");
+    showToast(warnings.length ? "Andamento atualizado. " + notificationWarningSummary(warnings) : "Andamento do setor atualizado.", warnings.length ? "error" : "success");
     await refreshOrders();
   } catch (error) {
     await refreshOrders();
@@ -394,7 +447,7 @@ function setIntegrationStates() {
   document.querySelector(".settings-save-button").disabled = false;
   const canCreateOrders = hasAccess && Boolean(config.createOrderEndpoint) && connectionMode === "connected" && !usingDemoData;
   document.getElementById("new-order-button").disabled = !canCreateOrders;
-  document.querySelector("#new-order-form button[type='submit']").disabled = !canCreateOrders;
+  document.querySelector("#new-order-form button[type='submit']").disabled = !canCreateOrders || isSubmittingNewOrder;
   const accessButton = document.getElementById("api-access-button");
   accessButton.textContent = hasAccess ? "Sair" : "Acessar";
   accessButton.setAttribute("aria-pressed", String(hasAccess));
@@ -554,41 +607,59 @@ function optionalPhoneValue(value) {
 
 async function submitNewOrder(event) {
   event.preventDefault();
+  if (isSubmittingNewOrder) return;
+  isSubmittingNewOrder = true;
+  setIntegrationStates();
   const form = event.currentTarget;
   const status = document.getElementById("new-order-status");
   const formData = new FormData(form);
   try {
     await dashboardItemEditorReady;
     if (!itemEditor) throw new Error("Não foi possível carregar os setores de produção.");
-    const orderRef = "ENC-" + crypto.randomUUID().toUpperCase();
-    const payload = {
-      event_id: crypto.randomUUID(),
-      event_type: "order.created",
-      order_ref: orderRef,
-      payload: {
-        order: {
-          id: orderRef,
-          requested_date: String(formData.get("pickup_date") || ""),
-          requested_time: String(formData.get("pickup_time") || ""),
-          pickup_location: String(formData.get("pickup_location") || "").trim(),
-          fulfillment_type: "pickup",
-          notes: String(formData.get("notes") || "").trim()
-        },
-        customer: {
-          name: String(formData.get("customer_name") || "").trim(),
-          phone_e164: phoneToE164(formData.get("customer_phone"))
-        },
-        fiscal: { phone_e164: optionalPhoneValue(formData.get("fiscal_phone")) },
-        items: itemEditor.getItems()
-      }
+    const order = {
+      requested_date: String(formData.get("pickup_date") || ""),
+      requested_time: String(formData.get("pickup_time") || ""),
+      pickup_location: String(formData.get("pickup_location") || "").trim(),
+      fulfillment_type: "pickup",
+      notes: String(formData.get("notes") || "").trim()
     };
-    await requestJson(config.createOrderEndpoint, { method: "POST", body: JSON.stringify(payload) });
+    const draft = {
+      order,
+      customer: {
+        name: String(formData.get("customer_name") || "").trim(),
+        phone_e164: phoneToE164(formData.get("customer_phone"))
+      },
+      fiscal: { phone_e164: optionalPhoneValue(formData.get("fiscal_phone")) },
+      items: itemEditor.getItems()
+    };
+    const fingerprint = await fingerprintPayload(draft);
+    if (!pendingNewOrderSubmission || pendingNewOrderSubmission.fingerprint !== fingerprint) {
+      pendingNewOrderSubmission = {
+        fingerprint,
+        event_id: crypto.randomUUID(),
+        order_ref: "ENC-" + crypto.randomUUID().toUpperCase()
+      };
+      writeSessionDraft(newOrderSubmissionStorageKey, pendingNewOrderSubmission);
+    }
+    const result = await requestJson(config.createOrderEndpoint, { method: "POST", body: JSON.stringify({
+      event_id: pendingNewOrderSubmission.event_id,
+      event_type: "order.created",
+      order_ref: pendingNewOrderSubmission.order_ref,
+      payload: { ...draft, order: { ...order, id: pendingNewOrderSubmission.order_ref } }
+    }) });
+    pendingNewOrderSubmission = null;
+    clearSessionDraft(newOrderSubmissionStorageKey);
     newOrderDialog.close();
     form.reset();
     itemEditor.reset();
-    showToast("Pedido registrado.", "success");
+    const warnings = Array.isArray(result?.warnings) ? result.warnings : [];
+    showToast(warnings.length ? "Pedido registrado. " + notificationWarningSummary(warnings) : "Pedido registrado.", warnings.length ? "error" : "success");
     await refreshOrders();
   } catch (error) { status.textContent = error.message || "Não foi possível registrar o pedido."; }
+  finally {
+    isSubmittingNewOrder = false;
+    setIntegrationStates();
+  }
 }
 
 async function openApiAccess() {

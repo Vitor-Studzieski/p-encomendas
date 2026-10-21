@@ -1,11 +1,10 @@
 "use strict";
 
 const crypto = require("node:crypto");
-const { dispatchEvent, requestFiscalReview } = require("../../../lib/events");
+const { dispatchEvent, requestFiscalReview, sendEventNotification } = require("../../../lib/events");
 const { enforceRateLimit, fail, json, methodNotAllowed, readBody, sameSecret } = require("../../../lib/http");
 const { normalizePhone } = require("../../../lib/phones");
 const { getOperationSettings } = require("../../../lib/supabase");
-const { sendText } = require("../../../lib/zapi");
 
 function requestSecret(request) {
   if (request.query?.secret) return Array.isArray(request.query.secret) ? request.query.secret[0] : request.query.secret;
@@ -15,6 +14,12 @@ function requestSecret(request) {
 
 function inboundPhone(payload) {
   return normalizePhone(payload.phone || payload.chatId || payload.participantPhone);
+}
+
+function inboundMessageId(payload) {
+  const candidate = payload.messageId || payload.zaapId;
+  if (typeof candidate === "string" && candidate.trim() && candidate.length <= 100) return candidate;
+  return "fallback-" + crypto.createHash("sha256").update(JSON.stringify(payload)).digest("hex");
 }
 
 module.exports = async function zapiInbound(request, response) {
@@ -34,6 +39,7 @@ module.exports = async function zapiInbound(request, response) {
     const phone = inboundPhone(payload);
     const text = String(payload.text?.message || payload.message || "").trim();
     if (!phone || !text || text.length > 2000) return json(response, 200, { ok: true, ignored: true });
+    const messageId = inboundMessageId(payload);
 
     const settings = await getOperationSettings();
     const sender = phone.replace(/\D/g, "");
@@ -45,42 +51,47 @@ module.exports = async function zapiInbound(request, response) {
       const orderRef = command[2].trim();
       if (orderRef.length > 180) return json(response, 200, { ok: true, ignored: true });
       if (command[1].toUpperCase() === "RECUSAR") {
-        const review = await requestFiscalReview(orderRef);
+        const review = await requestFiscalReview(orderRef, "", "zapi-review:" + messageId);
         const reply = review.warnings.length
           ? "O pedido " + orderRef + " continua pendente para revisão, mas não consegui confirmar o aviso à fiscal. Avise a operação diretamente."
           : "A fiscal foi avisada sobre o pedido " + orderRef + ". Ele continua pendente enquanto ela investiga. Se for possível atender, envie CONFIRMAR " + orderRef + ". Se não for possível, a fiscal avisará o cliente. Não registre uma nova encomenda para essa revisão.";
-        await sendText(phone, reply);
+        const replyWarnings = await sendEventNotification(phone, reply, {
+          tag: "zapi-review-ack",
+          eventId: "zapi-ack:" + messageId,
+          orderRef
+        });
+        review.warnings.push(...replyWarnings);
         return json(response, 200, { ok: true, review_requested: true, warnings: review.warnings });
       }
-      const candidateMessageId = payload.messageId || payload.zaapId;
-      const messageId = typeof candidateMessageId === "string" && candidateMessageId.length <= 100
-        ? candidateMessageId
-        : crypto.randomUUID();
       const result = await dispatchEvent({
         event_id: "zapi-reply:" + messageId,
         event_type: "order.confirmed",
         order_ref: orderRef,
         payload: { order: { id: orderRef }, occurred_at: new Date().toISOString() }
       });
-      await sendText(phone, "Recebi sua resposta para o pedido " + orderRef + ". Estou atualizando o painel.");
-      return json(response, 200, { ok: true, processed: true, warnings: result.warnings });
+      const replyWarnings = await sendEventNotification(phone, "Recebi sua resposta para o pedido " + orderRef + ". Estou atualizando o painel.", {
+        tag: "zapi-confirmation-ack",
+        eventId: "zapi-ack:" + messageId,
+        orderRef
+      });
+      return json(response, 200, { ok: true, processed: true, warnings: [...result.warnings, ...replyWarnings] });
     }
 
     if (command && command[1].toUpperCase() === "ENCERRAR" && sender === fiscal) {
       const orderRef = command[2].trim();
       if (orderRef.length > 180) return json(response, 200, { ok: true, ignored: true });
-      const candidateMessageId = payload.messageId || payload.zaapId;
-      const messageId = typeof candidateMessageId === "string" && candidateMessageId.length <= 100
-        ? candidateMessageId
-        : crypto.randomUUID();
       const result = await dispatchEvent({
         event_id: "zapi-fiscal-close:" + messageId,
         event_type: "order.rejected",
         order_ref: orderRef,
         payload: { order: { id: orderRef }, customer_informed: true, notify_fiscal: false, occurred_at: new Date().toISOString() }
       });
-      await sendText(phone, "Pedido " + orderRef + " encerrado no painel. O sistema não enviou mensagem ao cliente.");
-      return json(response, 200, { ok: true, closed: true, warnings: result.warnings });
+      const replyWarnings = await sendEventNotification(phone, "Pedido " + orderRef + " encerrado no painel. O sistema não enviou mensagem ao cliente.", {
+        tag: "zapi-close-ack",
+        eventId: "zapi-ack:" + messageId,
+        orderRef
+      });
+      return json(response, 200, { ok: true, closed: true, warnings: [...result.warnings, ...replyWarnings] });
     }
 
     if (fiscal && sender === fiscal) {
@@ -89,12 +100,18 @@ module.exports = async function zapiInbound(request, response) {
       const { createPublicFormToken } = require("../../../lib/public-form-token");
       const formToken = createPublicFormToken();
       const link = baseUrl + "/pedido.html#acesso=" + encodeURIComponent(formToken.access) + "&expira=" + formToken.expiresAt;
-      await sendText(phone, "Use este formulário para registrar o pedido: " + link + "\n\nVocê pode incluir produtos da Padaria, do Açougue e dos Frios no mesmo pedido. Adicione cada produto e selecione o setor responsável; o pedido pode envolver um, dois ou os três setores.\n\nApós investigar um impedimento, avise o cliente diretamente. Se não for possível atender, envie ENCERRAR <número do pedido> para registrar o encerramento.");
+      await sendEventNotification(phone, "Use este formulário para registrar o pedido: " + link + "\n\nVocê pode incluir produtos da Padaria, do Açougue e dos Frios no mesmo pedido. Adicione cada produto e selecione o setor responsável; o pedido pode envolver um, dois ou os três setores.\n\nApós investigar um impedimento, avise o cliente diretamente. Se não for possível atender, envie ENCERRAR <número do pedido> para registrar o encerramento.", {
+        tag: "zapi-fiscal-form-link",
+        eventId: "zapi-message:" + messageId
+      });
       return json(response, 200, { ok: true, form_link_sent: true });
     }
 
     if (sender === bakery) {
-      await sendText(phone, "Para atualizar um pedido, responda CONFIRMAR <número> se puder produzir ou RECUSAR <número> para pedir análise à fiscal. O pedido continua pendente durante a análise.");
+      await sendEventNotification(phone, "Para atualizar um pedido, responda CONFIRMAR <número> se puder produzir ou RECUSAR <número> para pedir análise à fiscal. O pedido continua pendente durante a análise.", {
+        tag: "zapi-bakery-help",
+        eventId: "zapi-message:" + messageId
+      });
     }
     return json(response, 200, { ok: true, ignored: true });
   } catch (error) {

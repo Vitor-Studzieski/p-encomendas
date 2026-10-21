@@ -59,12 +59,12 @@ As páginas HTML na raiz são entradas multipágina do Vite. O conteúdo de `pub
 
 ## Supabase
 
-Antes do deploy, abra o **SQL Editor** do projeto Supabase usado pela aplicação e execute, em ordem, `supabase/migrations/20261019000000_dashboard_runtime.sql`, `supabase/migrations/20261020104015_add_department_workflow.sql` e `supabase/migrations/20261020112117_fix_dashboard_phone_normalization.sql`. A primeira migração prepara as tabelas, rotinas e permissões do runtime. A segunda adiciona os contatos de Açougue e Frios e ativa esses setores. A terceira adiciona a normalização E.164 que a rotina de pedidos usa. Se uma migração parar por conflito de nome ou objeto inesperado, revise o erro antes de continuar.
+Antes do deploy, abra o **SQL Editor** do projeto Supabase usado pela aplicação e execute, em ordem, `supabase/migrations/20261019000000_dashboard_runtime.sql`, `supabase/migrations/20261020104015_add_department_workflow.sql`, `supabase/migrations/20261020112117_fix_dashboard_phone_normalization.sql`, `supabase/migrations/20261020134546_add_confeitaria_sector.sql` e `supabase/migrations/20261021084158_normalize_product_size_selection.sql`. A primeira migração prepara as tabelas, rotinas e permissões do runtime. A segunda adiciona os contatos de Açougue e Frios e ativa esses setores. A terceira adiciona a normalização E.164 que a rotina de pedidos usa. A quarta ativa Confeitaria. A quinta liga cada item do pedido ao tamanho pelo ID do catálogo e atualiza a validação para aceitar esse ID, mantendo o rótulo para o histórico. Se a última migração não encontrar a estrutura esperada da RPC, ela cancela sem aplicar parcialmente; revise a definição atual antes de continuar.
 
 A migração cria e restringe:
 
 - `public.dashboard_operation_settings`, que guarda os telefones da padaria, da fiscal, de Açougue e Frios e o telefone padrão do cliente.
-- `public.dashboard_automation_runs`, que impede o envio duplicado de resumos e pesquisas agendadas.
+- `public.dashboard_automation_runs`, que impede o envio duplicado de notificações de pedidos, resumos e pesquisas agendadas.
 - `public.dashboard_automation_audit`, preservando os registros antigos de auditoria quando a tabela existe.
 - `public.claim_dashboard_automation`, uma função de uso interno para reclamar cada tarefa uma única vez.
 - Um schema privado para contadores de limitação de tentativas, acessível somente pelo backend.
@@ -131,7 +131,7 @@ A fiscal recebe um endereço como `https://SEU-DOMINIO/pedido.html#acesso=ASSINA
 ## Deploy na Vercel
 
 1. Conecte este repositório a um projeto Vercel.
-2. Aplique as duas migrações Supabase na ordem mostrada acima e configure todas as variáveis de ambiente.
+2. Aplique as cinco migrações Supabase na ordem mostrada acima e configure todas as variáveis de ambiente.
 3. Configure Node.js 24, habilite **Fluid Compute** e o acesso às variáveis de ambiente do sistema para o Vercel Workflow SDK.
 4. Faça o deploy e configure o webhook HTTPS da Z-API.
 5. Entre uma vez na dashboard com `DASHBOARD_ACCESS_TOKEN`; a sessão permite cadastrar os contatos de Padaria, Fiscal, Açougue e Frios.

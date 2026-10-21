@@ -12,7 +12,7 @@ module.exports = async function orderActions(request, response) {
       throw Object.assign(new Error("Confirme que a fiscal já avisou o cliente antes de encerrar o pedido."), { statusCode: 422 });
     }
     const result = body.action === "request_review"
-      ? await requestFiscalReview(body.external_order_id || body.order_ref, body.reason || "")
+      ? await requestFiscalReview(body.external_order_id || body.order_ref, body.reason || "", body.event_id)
       : await dispatchEvent(actionEvent(body));
     return json(response, 200, result);
   } catch (error) {

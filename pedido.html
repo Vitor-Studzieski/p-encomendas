@@ -17,7 +17,7 @@
     <div class="public-brand"><span class="public-brand-mark" aria-hidden="true">♨</span>Encomendas · Operação</div>
     <section class="public-card">
       <h1>Registrar encomenda</h1>
-      <p>Preencha os dados do cliente e atribua cada produto ao setor responsável. Um pedido pode incluir itens da Padaria, do Açougue, dos Frios ou dos três setores.</p>
+      <p>Preencha os dados do cliente e escolha os produtos cadastrados. Ao selecionar um produto, o formulário mostra os tamanhos disponíveis; os itens ficam associados à Confeitaria.</p>
       <form id="public-order-form" class="public-form">
         <label class="field"><span>Nome do cliente</span><input name="customer_name" autocomplete="name" required></label>
         <label class="field"><span>WhatsApp do cliente</span><input name="customer_phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+55 11 99999-9999" required></label>
@@ -26,15 +26,24 @@
           <label class="field"><span>Horário</span><input name="requested_time" type="time" required></label>
         </div>
         <label class="field"><span>Local de retirada</span><input name="pickup_location" autocomplete="street-address" required></label>
-        <label class="field"><span>Pedido em texto</span><textarea id="public-order-text" name="order_text" rows="3" placeholder="Ex.: 2 pães de queijo, 1 bolo de cenoura"></textarea><span class="order-text-hint">Escreva os produtos e quantidades. Vou identificar no catálogo e pedir uma confirmação para a Confeitaria. Para usar o preenchimento manual abaixo, apague este texto.</span></label>
-        <section id="order-text-preview" class="order-text-preview" role="status" aria-live="polite" hidden></section>
-        <fieldset class="field item-editor-field"><legend>Produtos, quantidades e setores</legend><p class="item-editor-hint">Adicione cada produto e escolha o setor responsável. O pedido pode envolver um, dois ou os três setores; só os setores escolhidos receberão seus itens.</p><div class="item-editor" id="public-order-items"><div data-item-list></div><button class="text-button item-add-button" data-add-item type="button">＋ Adicionar produto</button><span class="item-editor-status" data-item-status role="status"></span></div></fieldset>
+        <fieldset class="field item-editor-field"><legend>Produtos, tamanhos e quantidades</legend><p class="item-editor-hint">Digite parte do nome para buscar no catálogo, selecione o produto e escolha um dos tamanhos disponíveis. O setor de produção é Confeitaria.</p><div class="item-editor" id="public-order-items"><div data-item-list></div><button class="text-button item-add-button" data-add-item type="button">＋ Adicionar produto</button><span class="item-editor-status" data-item-status role="status" aria-live="polite"></span></div></fieldset>
         <label class="field"><span>Observações <small>(opcional)</small></span><textarea name="notes" rows="2"></textarea></label>
         <span id="form-status" role="status" aria-live="polite"></span>
-        <button class="public-submit" type="submit">Enviar encomenda <span aria-hidden="true">→</span></button>
+        <button class="public-submit" type="submit">Revisar encomenda <span aria-hidden="true">→</span></button>
       </form>
     </section>
   </main>
+  <dialog class="order-confirmation" id="order-confirmation">
+    <form method="dialog" class="order-confirmation-card">
+      <h2>Confirme a encomenda</h2>
+      <p>Confira os produtos e tamanhos. Depois de confirmar, o pedido será enviado à Padaria para aprovação, com os itens associados à Confeitaria.</p>
+      <div data-confirmation-summary class="order-confirmation-summary"></div>
+      <div class="order-confirmation-actions">
+        <button class="order-confirmation-cancel" type="submit" value="cancel">Voltar</button>
+        <button class="public-submit" type="button" data-confirm-order>Confirmar e enviar <span aria-hidden="true">→</span></button>
+      </div>
+    </form>
+  </dialog>
   <script type="module" src="/src/orders/order-form.js"></script>
 </body>
 </html>
