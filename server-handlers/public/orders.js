@@ -106,7 +106,7 @@ module.exports = async function publicOrders(request, response) {
         items
       }
     });
-    const result = await dispatchEvent(event);
+    const result = await dispatchEvent(event, { settings });
     return json(response, 202, { ok: true, order_ref: event.order_ref, warnings: result.warnings });
   } catch (error) {
     return fail(response, error, "Não foi possível enviar a encomenda.");
