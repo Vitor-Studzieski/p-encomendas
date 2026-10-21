@@ -12,9 +12,14 @@ export async function mountOrderItems(container) {
   if (!sectors.length) throw new Error("Não há setores ativos para atribuir aos itens.");
   const departmentFor = sector => {
     const normalized = [sector.slug, sector.name].filter(Boolean).join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
-    return /acougue|butcher/.test(normalized) ? "Açougue" : /frios|cold.?cuts/.test(normalized) ? "Frios" : "Padaria";
+    if (/padaria|bakery/.test(normalized)) return "Padaria";
+    if (/confeitaria|confectionery/.test(normalized)) return "Confeitaria";
+    if (/acougue|butcher/.test(normalized)) return "Açougue";
+    if (/frios|cold.?cuts/.test(normalized)) return "Frios";
+    if (/rotisseria|rotisserie/.test(normalized)) return "Rotisseria";
+    return "Outros setores";
   };
-  const options = '<option value="">Selecione o setor do produto</option>' + ["Padaria", "Açougue", "Frios"].map(department => {
+  const options = '<option value="">Selecione o setor do produto</option>' + ["Padaria", "Confeitaria", "Açougue", "Frios", "Rotisseria", "Outros setores"].map(department => {
     const group = sectors.filter(sector => departmentFor(sector) === department);
     return group.length ? '<optgroup label="' + department + '">' + group.map(sector => '<option value="' + escapeHtml(sector.id) + '" data-sector-name="' + escapeHtml(sector.name) + '">' + escapeHtml(sector.name) + "</option>").join("") + "</optgroup>" : "";
   }).join("");

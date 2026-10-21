@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1400" viewBox="0 0 1600 1400" role="img" aria-labelledby="title desc">
+  <title id="title">Arquitetura atual do sistema de encomendas</title>
+  <desc id="desc">Fluxo de pedidos por setor e item, com WhatsApp Z-API, formulário, Supabase, dashboard, confirmação 1, recusa 2 e revisão da Fiscal.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#789185"/></marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#217755"/></marker>
+    <marker id="arrow-amber" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#b47a19"/></marker>
+    <style>
+      .bg{fill:#f5f6f2}.card{fill:#fff;stroke:#dce4dc;stroke-width:2}.green{fill:#eef7f1;stroke:#a9ccb5}.amber{fill:#fff7e8;stroke:#e7c987}.dark{fill:#14372d;stroke:#14372d}.line{fill:none;stroke:#789185;stroke-width:3;marker-end:url(#arrow)}.line-g{fill:none;stroke:#217755;stroke-width:3;marker-end:url(#arrow-green)}.line-a{fill:none;stroke:#b47a19;stroke-width:3;marker-end:url(#arrow-amber)}.dash{fill:none;stroke:#9caea3;stroke-width:2;stroke-dasharray:8 8}.title{font:800 34px 'Segoe UI',Arial,sans-serif;fill:#17372d}.subtitle{font:500 16px 'Segoe UI',Arial,sans-serif;fill:#64756a}.h{font:750 19px 'Segoe UI',Arial,sans-serif;fill:#17372d}.body{font:500 14px 'Segoe UI',Arial,sans-serif;fill:#53645a}.small{font:500 12px 'Segoe UI',Arial,sans-serif;fill:#63766a}.eyebrow{font:700 11px 'Segoe UI',Arial,sans-serif;letter-spacing:1.5px;fill:#bd7844}.num{font:800 13px 'Segoe UI',Arial,sans-serif;fill:#fff}.sector{font:750 17px 'Segoe UI',Arial,sans-serif;fill:#17372d}.sector-small{font:600 12px 'Segoe UI',Arial,sans-serif;fill:#53645a}.white{fill:#fff}.tag{font:750 12px 'Segoe UI',Arial,sans-serif;fill:#217755}.warn{font:750 12px 'Segoe UI',Arial,sans-serif;fill:#a46d16}
+    </style>
+  </defs>
+  <rect class="bg" width="1600" height="1400"/>
+  <text x="54" y="58" class="eyebrow">PAINEL DA OPERAÇÃO · VISÃO TÉCNICA</text>
+  <text x="54" y="101" class="title">Arquitetura atual das encomendas</text>
+  <text x="54" y="130" class="subtitle">Fluxo por item e setor · confirmação inicial somente ao setor responsável · 21/10/2026</text>
+
+  <text x="54" y="174" class="eyebrow">1 · ABERTURA E REGISTRO DO PEDIDO</text>
+  <rect x="50" y="192" width="245" height="120" rx="16" class="card"/>
+  <circle cx="77" cy="220" r="15" fill="#c77f4f"/><text x="73" y="225" class="num">01</text>
+  <text x="101" y="226" class="h">Fiscal no WhatsApp</text>
+  <text x="72" y="258" class="body"><tspan x="72">Pede o link do formulário</tspan><tspan x="72" dy="21">para registrar a encomenda.</tspan></text>
+
+  <path d="M 296 252 H 342" class="line"/>
+  <rect x="350" y="192" width="260" height="120" rx="16" class="card"/>
+  <circle cx="377" cy="220" r="15" fill="#c77f4f"/><text x="373" y="225" class="num">02</text>
+  <text x="401" y="226" class="h">Webhook Z-API</text>
+  <text x="372" y="258" class="body"><tspan x="372">/api/zapi/inbound/:secret</tspan><tspan x="372" dy="21">valida o remetente e cria link</tspan><tspan x="372" dy="21">temporário com token.</tspan></text>
+
+  <path d="M 611 252 H 657" class="line"/>
+  <rect x="665" y="192" width="260" height="120" rx="16" class="card"/>
+  <circle cx="692" cy="220" r="15" fill="#c77f4f"/><text x="688" y="225" class="num">03</text>
+  <text x="716" y="226" class="h">Link temporário</text>
+  <text x="687" y="258" class="body"><tspan x="687">Acesso assinado e com validade;</tspan><tspan x="687" dy="21">não expõe credenciais do banco.</tspan></text>
+
+  <path d="M 926 252 H 972" class="line"/>
+  <rect x="980" y="192" width="300" height="120" rx="16" class="card"/>
+  <circle cx="1007" cy="220" r="15" fill="#c77f4f"/><text x="1003" y="225" class="num">04</text>
+  <text x="1031" y="226" class="h">Formulário fiscal</text>
+  <text x="1002" y="258" class="body"><tspan x="1002">Cliente, retirada, produto, tamanho</tspan><tspan x="1002" dy="21">e observações. O catálogo atual</tspan><tspan x="1002" dy="21">atribui os itens à Confeitaria.</tspan></text>
+
+  <path d="M 1281 252 H 1327" class="line"/>
+  <rect x="1335" y="192" width="215" height="120" rx="16" class="green"/>
+  <text x="1357" y="226" class="h">Catálogo</text>
+  <text x="1357" y="258" class="body"><tspan x="1357">Produtos e tamanhos</tspan><tspan x="1357" dy="21">ativos no Supabase.</tspan></text>
+
+  <path d="M 1130 313 V 342 H 550 V 366" class="line"/>
+  <text x="54" y="359" class="eyebrow">2 · API, BANCO E PAINEL</text>
+  <rect x="200" y="375" width="420" height="150" rx="18" class="card"/>
+  <text x="226" y="411" class="h">API de pedidos</text>
+  <text x="226" y="441" class="body"><tspan x="226">POST /api/public/orders</tspan><tspan x="226" dy="22">Valida token, catálogo e contato do setor</tspan><tspan x="226" dy="22">líder antes de gravar o pedido.</tspan><tspan x="226" dy="22">Depois, envia recibo ao cliente sem código.</tspan></text>
+  <path d="M 621 450 H 727" class="line"/>
+  <rect x="735" y="375" width="445" height="150" rx="18" class="dark"/>
+  <text x="763" y="411" class="h white">Supabase · fonte de dados</text>
+  <text x="763" y="441" class="body white"><tspan x="763">RPC cria código interno ENC AAAA.SSS.NNN.</tspan><tspan x="763" dy="22">Guarda cliente, pedido, itens e setor de cada item.</tspan><tspan x="763" dy="22">Ao confirmar, registra ou atualiza a agenda de produção.</tspan></text>
+  <path d="M 1181 450 H 1287" class="line"/>
+  <rect x="1295" y="375" width="255" height="150" rx="18" class="card"/>
+  <text x="1321" y="411" class="h">Dashboard</text>
+  <text x="1321" y="441" class="body"><tspan x="1321">Pedidos, produção, agenda,</tspan><tspan x="1321" dy="22">histórico e contatos por setor.</tspan><tspan x="1321" dy="22">Ações via API; cron resume às 06h.</tspan></text>
+  <path d="M 1110 526 V 550 H 420 V 575" class="dash"/>
+  <path d="M 1420 526 V 550 H 1260 V 575" class="dash"/>
+
+  <text x="54" y="577" class="eyebrow">3 · ROTEAMENTO POR ITEM</text>
+  <rect x="50" y="593" width="1500" height="92" rx="18" class="green"/>
+  <text x="77" y="626" class="h">A confirmação inicial vai ao primeiro setor presente nos itens do pedido</text>
+  <text x="77" y="654" class="body">Prioridade: 001 Padaria → 002 Confeitaria → 003 Açougue → 004 Frios → 005 Rotisseria. Se Padaria não tiver item, ela não recebe a mensagem.</text>
+  <text x="77" y="675" class="small">O setor inicial recebe apenas os próprios itens e responde 1 ou 2. Após confirmar, os outros setores com itens recebem somente suas linhas.</text>
+
+  <path d="M 800 686 V 709" class="line"/>
+  <text x="54" y="720" class="eyebrow">4 · DESTINOS CONFIGURADOS NA DASHBOARD</text>
+  <rect x="50" y="738" width="282" height="126" rx="16" class="card"/><rect x="50" y="738" width="282" height="8" rx="4" fill="#c77f4f"/>
+  <text x="73" y="778" class="sector">Padaria · 001</text><text x="73" y="805" class="sector-small">Somente itens da Padaria</text><text x="73" y="835" class="small">bakery_phone_e164</text>
+  <rect x="354" y="738" width="282" height="126" rx="16" class="card"/><rect x="354" y="738" width="282" height="8" rx="4" fill="#cc8e53"/>
+  <text x="377" y="778" class="sector">Confeitaria · 002</text><text x="377" y="805" class="sector-small">Somente itens da Confeitaria</text><text x="377" y="835" class="small">confectionery_phone_e164</text>
+  <rect x="658" y="738" width="282" height="126" rx="16" class="card"/><rect x="658" y="738" width="282" height="8" rx="4" fill="#758ead"/>
+  <text x="681" y="778" class="sector">Açougue · 003</text><text x="681" y="805" class="sector-small">Somente itens do Açougue</text><text x="681" y="835" class="small">butcher_phone_e164</text>
+  <rect x="962" y="738" width="282" height="126" rx="16" class="card"/><rect x="962" y="738" width="282" height="8" rx="4" fill="#7b9d83"/>
+  <text x="985" y="778" class="sector">Frios · 004</text><text x="985" y="805" class="sector-small">Somente itens de Frios</text><text x="985" y="835" class="small">cold_cuts_phone_e164</text>
+  <rect x="1266" y="738" width="282" height="126" rx="16" class="card"/><rect x="1266" y="738" width="282" height="8" rx="4" fill="#a18c6c"/>
+  <text x="1289" y="778" class="sector">Rotisseria · 005</text><text x="1289" y="805" class="sector-small">Somente itens da Rotisseria</text><text x="1289" y="835" class="small">rotisserie_phone_e164</text>
+
+  <path d="M 800 865 V 888" class="line"/>
+  <rect x="485" y="896" width="630" height="88" rx="18" class="dark"/>
+  <text x="515" y="933" class="h white">Resposta WhatsApp processada pelo webhook</text>
+  <text x="515" y="961" class="body white">Identifica o telefone do setor e vincula 1/2 ao pedido compatível.</text>
+
+  <path d="M 795 985 V 1010 H 405 V 1035" class="line-g"/>
+  <path d="M 805 985 V 1010 H 1195 V 1035" class="line-a"/>
+  <rect x="50" y="1043" width="700" height="158" rx="18" class="green"/>
+  <text x="78" y="1080" class="tag">RESPOSTA 1 · CONFIRMAR</text>
+  <text x="78" y="1113" class="h">Pedido confirmado</text>
+  <text x="78" y="1142" class="body"><tspan x="78">Atualiza status e agenda; avisa Fiscal e cliente.</tspan><tspan x="78" dy="22">O cliente recebe a confirmação sem o código interno.</tspan><tspan x="78" dy="22">Os demais setores recebem apenas os itens atribuídos a eles.</tspan></text>
+  <rect x="850" y="1043" width="700" height="158" rx="18" class="amber"/>
+  <text x="878" y="1080" class="warn">RESPOSTA 2 · NÃO CONSEGUE PRODUZIR</text>
+  <text x="878" y="1113" class="h">Revisão somente com a Fiscal</text>
+  <text x="878" y="1142" class="body"><tspan x="878">A Fiscal investiga alternativas antes da decisão final.</tspan><tspan x="878" dy="22">O cliente não recebe recusa nessa etapa.</tspan><tspan x="878" dy="22">A Fiscal encerra com ENCERRAR &lt;código&gt;.</tspan></text>
+
+  <path d="M 400 1202 V 1225" class="line-g"/><path d="M 1200 1202 V 1225" class="line-a"/>
+  <rect x="50" y="1233" width="700" height="92" rx="16" class="card"/>
+  <text x="77" y="1271" class="h">Agenda de produção</text>
+  <text x="77" y="1298" class="body">Itens confirmados aparecem agrupados pelo setor responsável.</text>
+  <rect x="850" y="1233" width="700" height="92" rx="16" class="card"/>
+  <text x="877" y="1271" class="h">Aviso final ao cliente</text>
+  <text x="877" y="1298" class="body">Só após a decisão final da Fiscal; sem código interno.</text>
+  <rect x="50" y="1344" width="1500" height="38" rx="10" fill="#fff3d9" stroke="#e7c987"/>
+  <text x="70" y="1368" class="small">Ação necessária antes de ativar os novos contatos: executar a migração 20261021134036_add_confectionery_rotisserie_contacts.sql no Supabase e cadastrar esses números em Configurações.</text>
+</svg>

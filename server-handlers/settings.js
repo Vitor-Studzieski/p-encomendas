@@ -17,7 +17,9 @@ module.exports = async function settings(request, response) {
       fiscal_phone_e164: String(body.fiscal_phone_e164 || "").trim(),
       customer_phone_e164: String(body.customer_phone_e164 || "").trim(),
       butcher_phone_e164: String(body.butcher_phone_e164 || "").trim(),
-      cold_cuts_phone_e164: String(body.cold_cuts_phone_e164 || "").trim()
+      cold_cuts_phone_e164: String(body.cold_cuts_phone_e164 || "").trim(),
+      confectionery_phone_e164: String(body.confectionery_phone_e164 || "").trim(),
+      rotisserie_phone_e164: String(body.rotisserie_phone_e164 || "").trim()
     };
     const invalidField = Object.entries(inputs).find(([, value]) => value && !normalizePhone(value));
     if (invalidField) {
@@ -26,7 +28,9 @@ module.exports = async function settings(request, response) {
         fiscal_phone_e164: "Fiscal",
         customer_phone_e164: "Cliente",
         butcher_phone_e164: "Açougue",
-        cold_cuts_phone_e164: "Frios"
+        cold_cuts_phone_e164: "Frios",
+        confectionery_phone_e164: "Confeitaria",
+        rotisserie_phone_e164: "Rotisseria"
       };
       return json(response, 422, { message: "O WhatsApp de " + labels[invalidField[0]] + " precisa ter DDD e ser válido, ou ficar vazio." });
     }

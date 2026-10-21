@@ -72,9 +72,13 @@ function notificationWarningSummary(warnings) {
     "production-ready-customer": "cliente",
     "order-cancelled-customer": "cliente",
     "order-created-bakery": "Padaria",
+    "order-created-confectionery": "Confeitaria",
+    "order-created-other": "setor sem contato configurado",
     "production-sector-bakery": "Padaria",
+    "production-sector-confectionery": "Confeitaria",
     "production-sector-butcher": "Açougue",
     "production-sector-cold_cuts": "Frios",
+    "production-sector-rotisserie": "Rotisseria",
     "production-ready-fiscal": "fiscal",
     "order-review-fiscal": "fiscal",
     "fiscal-review": "fiscal",
@@ -297,9 +301,12 @@ function departmentForTask(task) {
   const sector = relation(task.sector);
   const label = [sector.slug, sector.name || task.sector_name].filter(Boolean).join(" ")
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
+  if (/padaria|bakery/.test(label)) return "Padaria";
+  if (/confeitaria|confectionery/.test(label)) return "Confeitaria";
   if (/acougue|butcher/.test(label)) return "Açougue";
   if (/frios|cold.?cuts/.test(label)) return "Frios";
-  return "Padaria";
+  if (/rotisseria|rotisserie/.test(label)) return "Rotisseria";
+  return "Outros setores";
 }
 
 function productionTaskItems(task) {
@@ -327,11 +334,11 @@ function renderProductionBoard(message) {
     departmentOrders.get(orderKey).tasks.push(task);
   }
   if (!departments.size) {
-    board.innerHTML = "<div class=\"agenda-empty\"><strong>Nenhum item na produção</strong><span>Os setores recebem os itens quando a padaria confirma o pedido.</span></div>";
+    board.innerHTML = "<div class=\"agenda-empty\"><strong>Nenhum item na produção</strong><span>Os setores recebem seus itens após a confirmação do pedido.</span></div>";
     return;
   }
   const statusLabel = { planned: "Aguardando início", in_progress: "Em produção", needs_attention: "Atenção", completed: "Concluído" };
-  const departmentOrder = ["Padaria", "Açougue", "Frios"];
+  const departmentOrder = ["Padaria", "Confeitaria", "Açougue", "Frios", "Rotisseria", "Outros setores"];
   board.innerHTML = Array.from(departments.entries()).sort(([a], [b]) => departmentOrder.indexOf(a) - departmentOrder.indexOf(b)).map(([departmentName, departmentOrders]) => {
     const group = { name: departmentName, tasks: Array.from(departmentOrders.values()) };
     const cards = group.tasks.sort((a, b) => String(relation(a.tasks[0].order).requested_date || "").localeCompare(String(relation(b.tasks[0].order).requested_date || "")) || String(relation(a.tasks[0].order).requested_time || "").localeCompare(String(relation(b.tasks[0].order).requested_time || ""))).map(orderGroup => {
@@ -475,6 +482,8 @@ function populateSettings(settings) {
   document.getElementById("customer-phone-setting").value = phoneInputValue(settings.customer_phone_e164);
   document.getElementById("butcher-phone").value = phoneInputValue(settings.butcher_phone_e164);
   document.getElementById("cold-cuts-phone").value = phoneInputValue(settings.cold_cuts_phone_e164);
+  document.getElementById("confectionery-phone").value = phoneInputValue(settings.confectionery_phone_e164);
+  document.getElementById("rotisserie-phone").value = phoneInputValue(settings.rotisserie_phone_e164);
   document.getElementById("new-order-fiscal-phone").value = settings.fiscal_phone_e164 || "";
 }
 
@@ -487,7 +496,9 @@ function readSettingsDraft() {
       fiscal_phone_e164: String(value.fiscal_phone_e164 || ""),
       customer_phone_e164: String(value.customer_phone_e164 || ""),
       butcher_phone_e164: String(value.butcher_phone_e164 || ""),
-      cold_cuts_phone_e164: String(value.cold_cuts_phone_e164 || "")
+      cold_cuts_phone_e164: String(value.cold_cuts_phone_e164 || ""),
+      confectionery_phone_e164: String(value.confectionery_phone_e164 || ""),
+      rotisserie_phone_e164: String(value.rotisserie_phone_e164 || "")
     };
   } catch {
     return null;
@@ -504,7 +515,9 @@ function saveSettingsDraftFromInputs() {
     fiscal_phone_e164: document.getElementById("fiscal-phone").value.trim(),
     customer_phone_e164: document.getElementById("customer-phone-setting").value.trim(),
     butcher_phone_e164: document.getElementById("butcher-phone").value.trim(),
-    cold_cuts_phone_e164: document.getElementById("cold-cuts-phone").value.trim()
+    cold_cuts_phone_e164: document.getElementById("cold-cuts-phone").value.trim(),
+    confectionery_phone_e164: document.getElementById("confectionery-phone").value.trim(),
+    rotisserie_phone_e164: document.getElementById("rotisserie-phone").value.trim()
   };
   if (Object.values(settings).some(Boolean)) storeSettingsDraft(settings);
   else sessionStorage.removeItem(settingsDraftStorageKey);
@@ -518,7 +531,7 @@ function normalizeSettingsResponse(payload) {
   if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
     throw new Error("A API não retornou a configuração dos contatos.");
   }
-  const hasContactFields = "bakery_phone_e164" in settings || "fiscal_phone_e164" in settings || "customer_phone_e164" in settings || "butcher_phone_e164" in settings || "cold_cuts_phone_e164" in settings || "setting_key" in settings;
+  const hasContactFields = "bakery_phone_e164" in settings || "fiscal_phone_e164" in settings || "customer_phone_e164" in settings || "butcher_phone_e164" in settings || "cold_cuts_phone_e164" in settings || "confectionery_phone_e164" in settings || "rotisserie_phone_e164" in settings || "setting_key" in settings;
   if (Object.keys(settings).length > 0 && !hasContactFields) {
     throw new Error("A API respondeu sem os contatos de operação.");
   }
@@ -548,7 +561,7 @@ async function loadSettings() {
     populateSettings(pendingDraft || settings);
     document.getElementById("settings-save-status").textContent = pendingDraft
       ? "Números deste navegador aguardando sincronização. Clique em Salvar alterações."
-      : settings.bakery_phone_e164 || settings.fiscal_phone_e164 || settings.customer_phone_e164 || settings.butcher_phone_e164 || settings.cold_cuts_phone_e164
+      : settings.bakery_phone_e164 || settings.fiscal_phone_e164 || settings.customer_phone_e164 || settings.butcher_phone_e164 || settings.cold_cuts_phone_e164 || settings.confectionery_phone_e164 || settings.rotisserie_phone_e164
         ? "Contatos carregados da API."
         : "Conectado. Cadastre os números da operação.";
     contactsLoaded = true;
@@ -573,7 +586,9 @@ async function saveSettings(event) {
       fiscal_phone_e164: optionalPhone("fiscal-phone"),
       customer_phone_e164: optionalPhone("customer-phone-setting"),
       butcher_phone_e164: optionalPhone("butcher-phone"),
-      cold_cuts_phone_e164: optionalPhone("cold-cuts-phone")
+      cold_cuts_phone_e164: optionalPhone("cold-cuts-phone"),
+      confectionery_phone_e164: optionalPhone("confectionery-phone"),
+      rotisserie_phone_e164: optionalPhone("rotisserie-phone")
     };
     if (!dashboardAuthenticated || !config.settingsEndpoint || !contactsLoaded) {
       storeSettingsDraft(settings);
@@ -796,6 +811,8 @@ document.getElementById("fiscal-phone").addEventListener("input", saveSettingsDr
 document.getElementById("customer-phone-setting").addEventListener("input", saveSettingsDraftFromInputs);
 document.getElementById("butcher-phone").addEventListener("input", saveSettingsDraftFromInputs);
 document.getElementById("cold-cuts-phone").addEventListener("input", saveSettingsDraftFromInputs);
+document.getElementById("confectionery-phone").addEventListener("input", saveSettingsDraftFromInputs);
+document.getElementById("rotisserie-phone").addEventListener("input", saveSettingsDraftFromInputs);
 document.getElementById("api-access-button").addEventListener("click", openApiAccess);
 document.getElementById("api-access-form").addEventListener("submit", connectApi);
 document.getElementById("new-order-button").addEventListener("click", () => {

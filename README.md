@@ -5,19 +5,21 @@ Dashboard e backend em código para pedidos, agenda de produção e notificaçõ
 ## Funcionalidades
 
 - Consulta de pedidos e histórico pela view `public.dashboard_orders`.
-- Cadastro dos contatos da padaria, fiscal, Açougue e Frios, além do WhatsApp padrão do cliente.
+- Cadastro de um contato de WhatsApp por setor: Padaria, Confeitaria, Açougue, Frios e Rotisseria, além da Fiscal e do cliente.
 - Criação de pedidos pela dashboard ou pelo formulário público da fiscal, atribuindo cada item ao seu setor.
 - Revisão de impedimentos de qualquer setor pela fiscal sem encerrar o pedido; após a análise, a equipe responsável atualiza a encomenda pelo painel.
-- Encaminhamento de listas separadas para Padaria, Açougue e Frios e andamento individual de cada setor no painel.
-- Cada pedido pode envolver um, dois ou os três setores; o painel mostra apenas os envolvidos e reúne as áreas internas da Padaria.
+- Encaminhamento de itens e resumos separados para cada setor; cada equipe recebe somente os itens atribuídos a ela.
+- Cada pedido pode envolver um ou mais dos cinco setores; o painel mostra apenas as áreas com itens no pedido.
 - Registro de problemas de produção, conclusão de todos os setores e confirmação da retirada por eventos idempotentes.
 - Avisos de WhatsApp enviados pelo backend à Z-API.
-- Webhook de entrada da Z-API: a fiscal recebe o link do formulário. Padaria, Confeitaria, Rotisseria, Açougue e Frios podem pedir análise respondendo `2` à mensagem do pedido; o sistema encaminha a solicitação somente à fiscal e mantém o pedido pendente. A resposta numérica é vinculada quando há um único pedido ativo daquele setor. Depois de investigar alternativas, a fiscal pode registrar o encerramento com `ENCERRAR <código>`; só então o cliente recebe a mensagem final, e a fiscal entra em contato com ele.
+- Webhook de entrada da Z-API: a fiscal recebe o link do formulário. O primeiro setor presente nos itens recebe a confirmação inicial; `1` confirma e `2` avisa somente a fiscal para investigar. Após a confirmação, os demais setores com itens recebem apenas suas linhas. O cliente só é informado da recusa após a análise final da fiscal, registrada com `ENCERRAR <código>`.
 - Pesquisa de satisfação enviada duas horas após a retirada, com link assinado.
 - Resumo de produção diário às 06:00 no horário de São Paulo.
 - Limites de tentativas por origem para autenticação, formulário público, pesquisa e callback da Z-API. Os identificadores armazenados no Supabase são HMACs, não endereços IP.
 
 As regras transacionais de pedidos são funções PostgreSQL chamadas pela API: `dashboard_process_event`, `dashboard_upsert_production_agenda` e `dashboard_order_readiness`. A automação de pesquisa usa o Vercel Workflow SDK, sem workflow visual ou serviço n8n.
+
+![Arquitetura atual das encomendas](docs/architecture-current.svg)
 
 ## Desenvolvimento local
 
@@ -59,11 +61,11 @@ As páginas HTML na raiz são entradas multipágina do Vite. O conteúdo de `pub
 
 ## Supabase
 
-Antes do deploy, abra o **SQL Editor** do projeto Supabase usado pela aplicação e execute, em ordem, `supabase/migrations/20261019000000_dashboard_runtime.sql`, `supabase/migrations/20261020104015_add_department_workflow.sql`, `supabase/migrations/20261020112117_fix_dashboard_phone_normalization.sql`, `supabase/migrations/20261020134546_add_confeitaria_sector.sql` e `supabase/migrations/20261021084158_normalize_product_size_selection.sql`. A primeira migração prepara as tabelas, rotinas e permissões do runtime. A segunda adiciona os contatos de Açougue e Frios e ativa esses setores. A terceira adiciona a normalização E.164 que a rotina de pedidos usa. A quarta ativa Confeitaria. A quinta liga cada item do pedido ao tamanho pelo ID do catálogo e atualiza a validação para aceitar esse ID, mantendo o rótulo para o histórico. Se a última migração não encontrar a estrutura esperada da RPC, ela cancela sem aplicar parcialmente; revise a definição atual antes de continuar.
+Antes do deploy, abra o **SQL Editor** do projeto Supabase usado pela aplicação e execute, em ordem, `supabase/migrations/20261019000000_dashboard_runtime.sql`, `supabase/migrations/20261020104015_add_department_workflow.sql`, `supabase/migrations/20261020112117_fix_dashboard_phone_normalization.sql`, `supabase/migrations/20261020134546_add_confeitaria_sector.sql`, `supabase/migrations/20261021084158_normalize_product_size_selection.sql` e `supabase/migrations/20261021134036_add_confectionery_rotisserie_contacts.sql`. A primeira migração prepara as tabelas, rotinas e permissões do runtime. A segunda adiciona os contatos de Açougue e Frios e ativa esses setores. A terceira adiciona a normalização E.164 que a rotina de pedidos usa. A quarta ativa Confeitaria. A quinta liga cada item do pedido ao tamanho pelo ID do catálogo e atualiza a validação para aceitar esse ID, mantendo o rótulo para o histórico. A sexta separa os contatos de Confeitaria e Rotisseria dos contatos da Padaria.
 
 A migração cria e restringe:
 
-- `public.dashboard_operation_settings`, que guarda os telefones da padaria, da fiscal, de Açougue e Frios e o telefone padrão do cliente.
+- `public.dashboard_operation_settings`, que guarda os telefones dos cinco setores, da Fiscal e o telefone padrão do cliente.
 - `public.dashboard_automation_runs`, que impede o envio duplicado de notificações de pedidos, resumos e pesquisas agendadas.
 - `public.dashboard_automation_audit`, preservando os registros antigos de auditoria quando a tabela existe.
 - `public.claim_dashboard_automation`, uma função de uso interno para reclamar cada tarefa uma única vez.
@@ -99,7 +101,7 @@ Depois do deploy, configure **Webhooks → Ao receber** na Z-API com esta URL:
 https://SEU-DOMINIO/api/zapi/inbound/VALOR_DE_ZAPI_WEBHOOK_SECRET
 ```
 
-A fiscal recebe um endereço como `https://SEU-DOMINIO/pedido.html#acesso=ASSINATURA&expira=VALIDADE`. Em **Telefones da operação**, cadastre os contatos da equipe. Os números de Açougue e Frios habilitam o envio individual desses setores. Depois de avisar o cliente que um pedido não poderá ser atendido, a fiscal pode encerrá-lo respondendo `ENCERRAR <id>`.
+A fiscal recebe um endereço como `https://SEU-DOMINIO/pedido.html#acesso=ASSINATURA&expira=VALIDADE`. Em **Telefones da operação**, cadastre um contato para cada setor que recebe pedidos. Um mesmo telefone pode ser usado por mais de um setor se a equipe for compartilhada. Depois de investigar um pedido recusado, a fiscal pode registrar a decisão final respondendo `ENCERRAR <código>`.
 
 ## API
 
@@ -131,10 +133,10 @@ A fiscal recebe um endereço como `https://SEU-DOMINIO/pedido.html#acesso=ASSINA
 ## Deploy na Vercel
 
 1. Conecte este repositório a um projeto Vercel.
-2. Aplique as cinco migrações Supabase na ordem mostrada acima e configure todas as variáveis de ambiente.
+2. Aplique as seis migrações Supabase na ordem mostrada acima e configure todas as variáveis de ambiente.
 3. Configure Node.js 24, habilite **Fluid Compute** e o acesso às variáveis de ambiente do sistema para o Vercel Workflow SDK.
 4. Faça o deploy e configure o webhook HTTPS da Z-API.
-5. Entre uma vez na dashboard com `DASHBOARD_ACCESS_TOKEN`; a sessão permite cadastrar os contatos de Padaria, Fiscal, Açougue e Frios.
+5. Entre uma vez na dashboard com `DASHBOARD_ACCESS_TOKEN`; cadastre os WhatsApps dos setores, da Fiscal e o padrão do cliente.
 
 O cron está configurado para 09:00 UTC, equivalente a 06:00 em São Paulo. A plataforma pode iniciar a execução em qualquer momento dentro da hora programada.
 

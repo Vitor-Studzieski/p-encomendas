@@ -4,7 +4,8 @@ const crypto = require("node:crypto");
 const { dispatchEvent, requestFiscalReview, sendEventNotification } = require("../../../lib/events");
 const { enforceRateLimit, fail, json, methodNotAllowed, readBody, sameSecret } = require("../../../lib/http");
 const { normalizePhone } = require("../../../lib/phones");
-const { getOperationSettings, getOpenProductionOrders, getOrderByReference, getPendingConfirmationOrders } = require("../../../lib/supabase");
+const { groupProductionItems, leadProductionRouteKey, productionRouteLabel } = require("../../../lib/production-routing");
+const { getOperationSettings, getOpenProductionOrders, getOrderByReference } = require("../../../lib/supabase");
 
 function requestSecret(request) {
   if (request.query?.secret) return Array.isArray(request.query.secret) ? request.query.secret[0] : request.query.secret;
@@ -22,32 +23,24 @@ function inboundMessageId(payload) {
   return "fallback-" + crypto.createHash("sha256").update(JSON.stringify(payload)).digest("hex");
 }
 
-function routeKey(value) {
-  const label = String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
-  return /acougue|butcher/.test(label) ? "butcher" : /frios|cold.?cuts/.test(label) ? "cold_cuts" : "bakery";
-}
-
 function configuredProductionRoutes(settings) {
   return [
-    { phone: settings.bakery_phone_e164, key: "bakery", label: "Padaria, Confeitaria ou Rotisseria" },
+    { phone: settings.bakery_phone_e164, key: "bakery", label: "Padaria" },
+    { phone: settings.confectionery_phone_e164, key: "confectionery", label: "Confeitaria" },
     { phone: settings.butcher_phone_e164, key: "butcher", label: "Açougue" },
-    { phone: settings.cold_cuts_phone_e164, key: "cold_cuts", label: "Frios" }
+    { phone: settings.cold_cuts_phone_e164, key: "cold_cuts", label: "Frios" },
+    { phone: settings.rotisserie_phone_e164, key: "rotisserie", label: "Rotisseria" }
   ].map(route => ({ ...route, phone: normalizePhone(route.phone).replace(/\D/g, "") })).filter(route => route.phone);
 }
 
 function matchingOrderSectors(order, routeKeys) {
-  const names = new Set();
-  for (const item of Array.isArray(order?.items) ? order.items : []) {
-    const sector = item.sector && typeof item.sector === "object" ? item.sector : {};
-    const name = sector.name || item.sector_name || (typeof item.sector === "string" ? item.sector : "");
-    const key = routeKey([sector.slug, name].filter(Boolean).join(" "));
-    if (routeKeys.includes(key) && name) names.add(name);
-  }
-  return Array.from(names);
+  const routes = groupProductionItems(order?.items);
+  return routeKeys.flatMap(routeKey => Array.from(routes.get(routeKey)?.sectorNames || []));
 }
 
 function productionReplyLabel(order, routes) {
-  const names = matchingOrderSectors(order, routes.map(route => route.key));
+  const groups = groupProductionItems(order?.items);
+  const names = [...new Set(routes.flatMap(route => Array.from(groups.get(route.key)?.sectorNames || [])))];
   return names.length ? names.join(", ") : [...new Set(routes.map(route => route.label))].join(", ");
 }
 
@@ -81,10 +74,8 @@ module.exports = async function zapiInbound(request, response) {
     const numericAnswer = text.match(/^\s*([12])\s*$/);
 
     const commandDecision = command?.[1].toUpperCase();
-    const canConfirm = senderRouteKeys.includes("bakery");
     const isProductionDecision = isProductionSender && (
-      (numericAnswer && (numericAnswer[1] === "2" || canConfirm)) ||
-      (command && (commandDecision === "RECUSAR" || (commandDecision === "CONFIRMAR" && canConfirm)))
+      numericAnswer || (command && ["CONFIRMAR", "RECUSAR"].includes(commandDecision))
     );
 
     if (isProductionDecision) {
@@ -92,19 +83,19 @@ module.exports = async function zapiInbound(request, response) {
       let orderRef = command ? command[2].trim() : "";
       let selectedOrder = null;
       if (numericAnswer) {
-        let matchingOrders = [];
-        if (decision === "CONFIRMAR" || (decision === "RECUSAR" && canConfirm)) {
-          matchingOrders = await getPendingConfirmationOrders();
-        }
-        if (!matchingOrders.length && decision === "RECUSAR") {
-          const openOrders = await getOpenProductionOrders();
-          matchingOrders = openOrders.filter(order => matchingOrderSectors(order, senderRouteKeys).length > 0);
-        }
+        const openOrders = await getOpenProductionOrders();
+        const matchingOrders = openOrders.filter(order => {
+          const pending = ["awaiting_confirmation", "pending"].includes(String(order.status || "").toLowerCase());
+          const leadRouteKey = leadProductionRouteKey(order.items);
+          if (decision === "CONFIRMAR") return pending && senderRouteKeys.includes(leadRouteKey);
+          if (pending) return senderRouteKeys.includes(leadRouteKey);
+          return matchingOrderSectors(order, senderRouteKeys).length > 0;
+        });
         if (matchingOrders.length !== 1) {
           const reply = matchingOrders.length
             ? "Não registrei a resposta: há mais de um pedido ativo deste setor. Para evitar atualizar o pedido errado, peça à Fiscal para localizar a encomenda no painel."
             : decision === "CONFIRMAR"
-              ? "Não encontrei pedido aguardando confirmação. Confira o painel ou peça à Fiscal para verificar."
+              ? "Não encontrei pedido aguardando confirmação destinado a este setor. Confira o painel ou peça à Fiscal para verificar."
               : "Não encontrei um pedido ativo deste setor para vincular à recusa. Peça à Fiscal para localizar a encomenda no painel.";
           const replyWarnings = await sendEventNotification(phone, reply, {
             tag: "zapi-production-help",
@@ -115,20 +106,34 @@ module.exports = async function zapiInbound(request, response) {
         selectedOrder = matchingOrders[0];
         orderRef = String(selectedOrder.display_id || "").trim();
         if (!orderRef) throw Object.assign(new Error("O pedido aguardando confirmação não tem código interno."), { statusCode: 409 });
+      } else {
+        selectedOrder = await getOrderByReference(orderRef);
+        if (!selectedOrder) throw Object.assign(new Error("Pedido não encontrado para atualizar."), { statusCode: 404 });
+        const pending = ["awaiting_confirmation", "pending"].includes(String(selectedOrder.status || "").toLowerCase());
+        const leadRouteKey = leadProductionRouteKey(selectedOrder.items);
+        const assignedToSender = matchingOrderSectors(selectedOrder, senderRouteKeys).length > 0;
+        const canAnswerInitialConfirmation = pending && senderRouteKeys.includes(leadRouteKey);
+        const invalidResponse = decision === "CONFIRMAR"
+          ? !canAnswerInitialConfirmation
+          : !assignedToSender || (pending && !canAnswerInitialConfirmation);
+        if (invalidResponse) {
+          const leadRoute = groupProductionItems(selectedOrder.items).get(leadRouteKey);
+          const leadSector = productionRouteLabel(leadRoute);
+          const reply = decision === "CONFIRMAR"
+            ? "Não registrei a confirmação: este pedido não está aguardando uma resposta inicial deste setor."
+            : !assignedToSender
+              ? "Não registrei a recusa: este pedido não contém itens vinculados ao seu setor. Peça à Fiscal para conferir o código e o setor no painel."
+              : "A confirmação inicial deste pedido está direcionada a " + leadSector + ". Só esse setor pode responder antes da confirmação.";
+          const replyWarnings = await sendEventNotification(phone, reply, {
+            tag: "zapi-production-help",
+            eventId: "zapi-ack:" + messageId,
+            orderRef
+          });
+          return json(response, 200, { ok: true, processed: false, reason: "order_not_assigned_to_confirmation", warnings: replyWarnings });
+        }
       }
       if (orderRef.length > 180) return json(response, 200, { ok: true, ignored: true });
       if (decision === "RECUSAR") {
-        if (!selectedOrder && !canConfirm) {
-          selectedOrder = await getOrderByReference(orderRef);
-          if (selectedOrder && !matchingOrderSectors(selectedOrder, senderRouteKeys).length) {
-            const replyWarnings = await sendEventNotification(phone, "Não registrei a recusa: este pedido não contém itens vinculados ao seu setor. Peça à Fiscal para conferir o código e o setor no painel.", {
-              tag: "zapi-production-help",
-              eventId: "zapi-ack:" + messageId,
-              orderRef
-            });
-            return json(response, 200, { ok: true, processed: false, reason: "order_not_assigned_to_sender_sector", warnings: replyWarnings });
-          }
-        }
         const review = await requestFiscalReview(orderRef, "", "zapi-review:" + messageId, selectedOrder ? productionReplyLabel(selectedOrder, senderRoutes) : [...new Set(senderRoutes.map(route => route.label))].join(", "));
         const reply = review.warnings.length
           ? "Recusa registrada. O pedido continua pendente, mas não consegui confirmar o aviso à Fiscal. Avise a operação diretamente."
@@ -141,11 +146,18 @@ module.exports = async function zapiInbound(request, response) {
         review.warnings.push(...replyWarnings);
         return json(response, 200, { ok: true, review_requested: true, warnings: review.warnings });
       }
+      const confirmedRouteKey = leadProductionRouteKey(selectedOrder?.items);
+      const confirmedRoute = groupProductionItems(selectedOrder?.items).get(confirmedRouteKey);
       const result = await dispatchEvent({
         event_id: "zapi-reply:" + messageId,
         event_type: "order.confirmed",
         order_ref: orderRef,
-        payload: { order: { id: orderRef }, occurred_at: new Date().toISOString() }
+        payload: {
+          order: { id: orderRef },
+          confirmed_route_key: confirmedRouteKey,
+          confirmed_by_sector: productionRouteLabel(confirmedRoute),
+          occurred_at: new Date().toISOString()
+        }
       });
       const replyWarnings = await sendEventNotification(phone, "Confirmação registrada. O pedido foi marcado como confirmado no painel.", {
         tag: "zapi-confirmation-ack",
@@ -186,10 +198,8 @@ module.exports = async function zapiInbound(request, response) {
     }
 
     if (isProductionSender) {
-      const help = canConfirm
-        ? "Para responder à confirmação da produção, envie 1 para confirmar. Para recusar e pedir análise da Fiscal, envie 2. A recusa é encaminhada primeiro somente à Fiscal; o cliente só é avisado após a análise final."
-        : "Para recusar os itens deste setor e pedir análise da Fiscal, responda à mensagem do pedido com 2. A recusa é encaminhada primeiro somente à Fiscal; o cliente só é avisado após a análise final.";
-      await sendEventNotification(phone, help + "\n\nA resposta é vinculada quando há exatamente um pedido ativo deste setor. Se houver mais de um, peça à Fiscal para localizar o pedido no painel.", {
+      const help = "Quando seu setor receber a confirmação inicial do pedido, envie 1 para confirmar. Se não puder produzir seus itens, envie 2 para pedir análise da Fiscal. A recusa é encaminhada primeiro somente à Fiscal; o cliente só é avisado após a análise final.";
+      await sendEventNotification(phone, help + "\n\nA resposta numérica é vinculada quando há somente um pedido compatível com seu setor aguardando resposta. Se houver mais de um, peça à Fiscal para localizar o pedido no painel.", {
         tag: "zapi-production-help",
         eventId: "zapi-message:" + messageId
       });

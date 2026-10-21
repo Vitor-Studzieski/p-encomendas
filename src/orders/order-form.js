@@ -77,7 +77,7 @@ form.addEventListener("submit", async event => {
     };
     renderConfirmation(preparedPayload);
     if (typeof confirmation.showModal === "function") confirmation.showModal();
-    else if (window.confirm("Confirma o envio desta encomenda à Padaria para aprovação?")) await submitOrder();
+    else if (window.confirm("Confirma o envio desta encomenda ao setor responsável pelos itens?")) await submitOrder();
   } catch (error) {
     status.className = "status-error";
     status.textContent = error.message || "Confira os produtos e os tamanhos antes de continuar.";
@@ -123,17 +123,23 @@ async function submitOrder() {
     preparedPayload = null;
     const warnings = Array.isArray(result.warnings) ? result.warnings : [];
     if (warnings.length) {
+      const recipientByTag = {
+        "order-created-bakery": "Padaria: ",
+        "order-created-confectionery": "Confeitaria: ",
+        "order-created-butcher": "Açougue: ",
+        "order-created-cold_cuts": "Frios: ",
+        "order-created-rotisserie": "Rotisseria: ",
+        "order-created-other": "Setor sem contato configurado: ",
+        "order-created-customer": "Cliente: "
+      };
       const warningMessages = warnings.map(warning => {
-        const recipient = warning.tag === "order-created-bakery" ? "Padaria: "
-          : warning.tag === "order-created-customer" ? "Cliente: "
-            : "";
-        return recipient + String(warning.message || "Não foi possível enviar uma notificação.");
+        return (recipientByTag[warning.tag] || "") + String(warning.message || "Não foi possível enviar uma notificação.");
       });
       status.className = "status-warning";
       status.textContent = "Pedido " + (result.order_ref || "") + " registrado, mas houve falha em uma notificação: " + warningMessages.join(" ") + " Não envie novamente para evitar duplicidade.";
     } else {
       status.className = "status-success";
-      status.textContent = "Pedido " + (result.order_ref || "enviado") + " enviado à Padaria para aprovação; os itens estão associados à Confeitaria.";
+      status.textContent = "Pedido " + (result.order_ref || "enviado") + " registrado e encaminhado ao setor responsável pelos itens para confirmação.";
     }
   } catch (error) {
     if (confirmation.open) confirmation.close();
