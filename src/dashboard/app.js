@@ -1,4 +1,4 @@
-import { STATUS, today, normalizeOrder, phoneToE164, escapeHtml, prettyDate, availableActions } from "./domain/orders.js";
+import { STATUS, today, normalizeOrder, phoneToE164, escapeHtml, prettyDate, availableActions, orderItemLabel } from "./domain/orders.js";
 import { createOrderListRenderer } from "./ui/order-list.js";
 import { createAgendaView } from "./ui/agenda.js";
 import { mountOrderItems } from "../shared/order-items.js";
@@ -95,7 +95,7 @@ function showOrder(id) {
   if (!order) return;
   const actions = availableActions(order);
   const connected = Boolean(config.orderActionEndpoint) && !usingDemoData;
-  const itemList = order.items.map(item => "<li>" + escapeHtml(item.quantity) + "× " + escapeHtml(item.name) + (item.sector ? " <small>· " + escapeHtml(item.sector) + "</small>" : "") + "</li>").join("");
+  const itemList = order.items.map(item => "<li>" + escapeHtml(orderItemLabel(item)) + (item.sector ? " <small>· " + escapeHtml(item.sector) + "</small>" : "") + "</li>").join("");
   const itemsMarkup = itemList ? "<ul>" + itemList + "</ul>" : "<div class=\"detail-value\">" + escapeHtml(order.itemsSummary || "Itens não informados") + "</div>";
   const reasonLabel = order.status === "awaiting_confirmation" ? "Motivo para a fiscal analisar (opcional)" : "";
   const actionMarkup = actions.length
@@ -306,8 +306,7 @@ function productionTaskItems(task) {
   const items = Array.isArray(task.items) ? task.items : [];
   return items.map(item => {
     if (typeof item === "string") return escapeHtml(item);
-    const name = item.name || item.product_name || relation(item.product).name || "Produto";
-    return escapeHtml(item.quantity || 1) + "× " + escapeHtml(name);
+    return escapeHtml(orderItemLabel(item));
   });
 }
 

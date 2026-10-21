@@ -25,6 +25,27 @@ export function escapeHtml(value) {
   })[character]);
 }
 
+function firstRecord(value) {
+  return Array.isArray(value) ? value[0] || {} : value || {};
+}
+
+function itemName(item, fallback = "Produto") {
+  const product = firstRecord(item?.product);
+  return [item?.name, item?.product_name, product.name]
+    .find(value => typeof value === "string" && value.trim()) || fallback;
+}
+
+export function orderItemLabel(item) {
+  if (typeof item === "string") return item;
+  const productSize = firstRecord(item?.product_size);
+  const sizeRelation = firstRecord(item?.size);
+  const name = itemName(item);
+  const size = [item?.sizeLabel, item?.size_label, productSize.label,
+    typeof item?.size === "string" ? item.size : "", sizeRelation.label]
+    .find(value => typeof value === "string" && value.trim()) || "";
+  return String(item?.quantity ?? 1) + "× " + String(name) + (size ? " · " + size : "");
+}
+
 export function prettyDate(value) {
   if (!value) return "Sem data";
   const date = /^\d{4}-\d{2}-\d{2}$/.test(String(value)) ? new Date(String(value) + "T00:00:00") : new Date(value);
@@ -65,13 +86,27 @@ export function normalizeStatus(value) {
 
 export function normalizeOrder(row) {
   const customer = row.customer || {};
-  const items = row.items || row.order_items || [];
+  const items = Array.isArray(row.items) && row.items.length
+    ? row.items
+    : Array.isArray(row.order_items) ? row.order_items : [];
   return {
     id: row.display_id || row.external_order_id || row.order_number || row.id || "Sem identificação",
     customer: customer.name || row.customer_name || "Cliente",
     phone: customer.phone_e164 || customer.phone || row.customer_phone || "",
     fiscalPhone: row.fiscal_phone_e164 || row.fiscal_phone || row.fiscalPhone || "",
-    items: Array.isArray(items) ? items.map(item => ({ name: item.product_name || item.product?.name || item.name || "Produto", quantity: item.quantity ?? 1, sector: item.sector?.name || item.sector_name || "", sectorId: item.sector_id || item.sector?.id || "" })) : [],
+    items: Array.isArray(items) ? items.map(item => {
+      if (typeof item === "string") return { name: item, quantity: 1, sizeLabel: "", sector: "", sectorId: "" };
+      const sector = firstRecord(item?.sector);
+      const productSize = firstRecord(item?.product_size);
+      const size = item?.size_label || productSize.label || (typeof item?.size === "string" ? item.size : firstRecord(item?.size).label) || "";
+      return {
+        name: itemName(item),
+        quantity: item?.quantity ?? 1,
+        sizeLabel: String(size).trim(),
+        sector: sector.name || item?.sector_name || "",
+        sectorId: item?.sector_id || sector.id || ""
+      };
+    }) : [],
     itemsSummary: row.items_summary || row.item_summary || "",
     sector: row.sector_name || row.sector?.name || "",
     pickupDate: row.requested_date || row.pickup_date || row.scheduled_for || row.pickup_at || "",
@@ -108,7 +143,7 @@ export function isOverdue(order) {
 }
 
 export function orderItemsLabel(order) {
-  const details = order.items.map(item => Number(item.quantity) + "× " + item.name).join(" · ");
+  const details = order.items.map(orderItemLabel).join(" · ");
   return details || order.itemsSummary || "Itens não informados";
 }
 

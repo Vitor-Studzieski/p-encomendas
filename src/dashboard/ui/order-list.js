@@ -1,4 +1,4 @@
-import { STATUS, escapeHtml, localDateISO, prettyDate, terminalStatuses } from "../domain/orders.js";
+import { STATUS, escapeHtml, localDateISO, orderItemLabel, prettyDate, terminalStatuses } from "../domain/orders.js";
 
 export function createOrderListRenderer({ getOrders, getActiveView, onOpenOrder }) {
   const table = document.getElementById("orders-table");
@@ -22,7 +22,7 @@ export function createOrderListRenderer({ getOrders, getActiveView, onOpenOrder 
         return date === localDateISO(0);
       });
     }
-    if (query) rows = rows.filter(order => [order.id, order.customer, order.phone, order.items.map(item => item.name).join(" "), order.itemsSummary, order.sector].join(" ").toLocaleLowerCase("pt-BR").includes(query));
+    if (query) rows = rows.filter(order => [order.id, order.customer, order.phone, order.items.map(orderItemLabel).join(" "), order.itemsSummary, order.sector].join(" ").toLocaleLowerCase("pt-BR").includes(query));
     return rows.sort((a, b) => (String(a.pickupDate) + a.pickupTime).localeCompare(String(b.pickupDate) + b.pickupTime));
   }
 
@@ -30,7 +30,7 @@ export function createOrderListRenderer({ getOrders, getActiveView, onOpenOrder 
     const orders = getOrders();
     const rows = filteredOrders();
     table.innerHTML = rows.map(order => {
-      const itemsText = order.items.map(item => Number(item.quantity) + "× " + item.name).join(" · ") || order.itemsSummary;
+      const itemsText = order.items.map(orderItemLabel).join(" · ") || order.itemsSummary;
       const initials = order.customer.split(/\s+/).slice(0, 2).map(name => name[0] || "").join("").toUpperCase();
       return "<tr>" +
         "<td data-label=\"Encomenda\"><span class=\"order-id\">" + escapeHtml(order.id) + "</span><span class=\"order-date\">" + escapeHtml(prettyDate(order.pickupDate)) + "</span></td>" +

@@ -1,6 +1,7 @@
 "use strict";
 
 const { fail, json, methodNotAllowed, requireCron } = require("../../lib/http");
+const { formatOrderItems } = require("../../lib/order-items");
 const { claimAutomationRun, getOperationSettings, getSummaryOrders, updateAutomationRun } = require("../../lib/supabase");
 const { sendText } = require("../../lib/zapi");
 
@@ -47,12 +48,13 @@ module.exports = async function dailySummary(request, response) {
         continue;
       }
       for (const order of rows) {
+        const itemSummary = formatOrderItems(order.items) || order.items_summary || "Itens não informados";
         lines.push(
           (order.requested_time || "horário a combinar") + " · " +
           (order.display_id || "Pedido") + " · " +
           (order.status || "status pendente") + " · " +
           (order.sector_name || "setor não informado"),
-          order.items_summary || "Itens não informados"
+          itemSummary
         );
       }
     }
