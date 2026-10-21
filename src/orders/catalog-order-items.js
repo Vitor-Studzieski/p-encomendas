@@ -81,6 +81,7 @@ export async function mountOrderItems(container, { access, expires } = {}) {
     row.querySelector("[data-item-size]").setAttribute("aria-label", "Tamanho de " + product.name);
     setSizeOptions(row, product);
     closeSuggestions(row);
+    input.focus();
     status.textContent = "";
   }
 
@@ -123,7 +124,6 @@ export async function mountOrderItems(container, { access, expires } = {}) {
           sizes.textContent = "Tamanhos: " + sizeLabels.join(", ");
           option.append(sizes);
         }
-        option.addEventListener("pointerdown", event => event.preventDefault());
         option.addEventListener("click", () => chooseProduct(row, product, label));
         optionsPanel.append(option);
       }
@@ -136,7 +136,7 @@ export async function mountOrderItems(container, { access, expires } = {}) {
     rowNumber += 1;
     const row = document.createElement("div");
     row.className = "order-item-row";
-    row.innerHTML = '<label class="field item-name-field"><span>Produto ' + rowNumber + '</span><input data-item-name type="search" maxlength="180" placeholder="Digite para buscar no catálogo" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" required><div class="item-product-options" data-product-options role="listbox" hidden></div></label>' +
+    row.innerHTML = '<div class="field item-name-field"><span id="item-product-label-' + rowNumber + '">Produto ' + rowNumber + '</span><input id="item-product-' + rowNumber + '" data-item-name type="search" maxlength="180" placeholder="Digite para buscar no catálogo" autocomplete="off" role="combobox" aria-labelledby="item-product-label-' + rowNumber + '" aria-controls="item-product-options-' + rowNumber + '" aria-autocomplete="list" aria-expanded="false" required><div class="item-product-options" id="item-product-options-' + rowNumber + '" data-product-options role="listbox" hidden></div></div>' +
       '<label class="field item-size-field"><span>Tamanho</span><select data-item-size required disabled><option value="">Selecione um produto</option></select></label>' +
       '<label class="field item-quantity-field"><span>Quantidade</span><input data-item-quantity type="number" min="0.01" max="999" step="0.01" value="1" required></label>' +
       '<button class="item-remove-button" type="button" aria-label="Remover produto ' + rowNumber + '" title="Remover produto">×</button>';
