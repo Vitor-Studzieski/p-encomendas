@@ -5,6 +5,7 @@ const legacyParams = new URLSearchParams(location.search);
 const form = document.getElementById("survey-form");
 const status = document.getElementById("survey-status");
 const token = {
+  survey_token: params.get("token") || legacyParams.get("token") || "",
   order_ref: params.get("pedido") || legacyParams.get("pedido") || "",
   expires: Number(params.get("expira") || legacyParams.get("expira") || 0),
   signature: params.get("assinatura") || legacyParams.get("assinatura") || ""

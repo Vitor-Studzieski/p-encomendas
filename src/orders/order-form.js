@@ -9,7 +9,7 @@ const submitButton = form.querySelector("button[type=submit]");
 const confirmation = document.getElementById("order-confirmation");
 const confirmationSummary = confirmation.querySelector("[data-confirmation-summary]");
 const confirmButton = confirmation.querySelector("[data-confirm-order]");
-const submissionStorageKey = "fiscal-order-submission-v2";
+const submissionStorageKey = "fiscal-order-submission-v3";
 const formToken = new URLSearchParams(location.hash.slice(1));
 const access = formToken.get("acesso") || "";
 const expires = Number(formToken.get("expira") || 0);
@@ -94,10 +94,11 @@ async function submitOrder() {
   try {
     const fingerprint = await fingerprintPayload(preparedPayload);
     if (!pendingSubmission || pendingSubmission.fingerprint !== fingerprint) {
+      const eventId = crypto.randomUUID();
       pendingSubmission = {
         fingerprint,
-        event_id: crypto.randomUUID(),
-        order_ref: "ENC-" + crypto.randomUUID().toUpperCase()
+        event_id: eventId,
+        order_ref: "PENDING-" + eventId.toUpperCase()
       };
       writeSessionDraft(submissionStorageKey, pendingSubmission);
     }
@@ -132,7 +133,7 @@ async function submitOrder() {
       status.textContent = "Pedido " + (result.order_ref || "") + " registrado, mas houve falha em uma notificação: " + warningMessages.join(" ") + " Não envie novamente para evitar duplicidade.";
     } else {
       status.className = "status-success";
-      status.textContent = "Pedido enviado à Padaria para aprovação; os itens estão associados à Confeitaria.";
+      status.textContent = "Pedido " + (result.order_ref || "enviado") + " enviado à Padaria para aprovação; os itens estão associados à Confeitaria.";
     }
   } catch (error) {
     if (confirmation.open) confirmation.close();

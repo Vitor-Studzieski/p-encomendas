@@ -2,17 +2,25 @@
 
 const { dispatchEvent } = require("../../lib/events");
 const { enforceRateLimit, fail, json, methodNotAllowed, readBody } = require("../../lib/http");
-const { verifySurveyToken } = require("../../lib/survey-token");
+const { decryptSurveyToken, verifySurveyToken } = require("../../lib/survey-token");
 
 module.exports = async function publicSurvey(request, response) {
   if (request.method !== "POST") return methodNotAllowed(response, ["POST"]);
   try {
     if (!await enforceRateLimit(request, response, "public-survey", 20, 10 * 60)) return;
     const body = await readBody(request);
-    const orderRef = String(body.order_ref || "");
-    const expires = Number(body.expires);
-    if (!orderRef || !verifySurveyToken(orderRef, expires, body.signature)) {
-      return json(response, 401, { message: "Link da pesquisa inválido ou expirado." });
+    let orderRef;
+    let expires;
+    if (body.survey_token) {
+      const decoded = decryptSurveyToken(body.survey_token);
+      if (!decoded) return json(response, 401, { message: "Link da pesquisa inválido ou expirado." });
+      ({ orderRef, expires } = decoded);
+    } else {
+      orderRef = String(body.order_ref || "");
+      expires = Number(body.expires);
+      if (!orderRef || !verifySurveyToken(orderRef, expires, body.signature)) {
+        return json(response, 401, { message: "Link da pesquisa inválido ou expirado." });
+      }
     }
     const rating = Number(body.rating);
     if (!Number.isInteger(rating) || rating < 1 || rating > 5) return json(response, 422, { message: "Escolha uma nota de 1 a 5." });

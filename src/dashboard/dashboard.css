@@ -39,7 +39,9 @@
 .profile strong, .profile small { display: block; }
 .profile strong { color: #eef3ee; font-size: 11px; }
 .profile small { margin-top: 3px; color: #9caf9f; font-size: 10px; }
-.profile-menu { margin-left: auto; color: #96ab9b; letter-spacing: 2px; font-size: 13px; }
+.profile-menu { display: grid; width: 32px; height: 32px; flex: none; place-items: center; margin-left: auto; border: 0; border-radius: 8px; padding: 0; color: #96ab9b; background: transparent; font: 700 13px "DM Sans", sans-serif; letter-spacing: 2px; cursor: pointer; transition: color .15s ease, background .15s ease; }
+.profile-menu:hover, .profile-menu:focus-visible { color: #f1f5f1; background: rgb(255 255 255 / 8%); }
+.profile-menu:focus-visible { outline: 2px solid #e2b28d; outline-offset: 2px; }
 
 /* Topbar and page heading */
 .main-content { min-height: 100vh; margin-left: 272px; }
@@ -58,7 +60,7 @@
 .access-button:hover { border-color: #b5c9b8; background: #f4f8f3; }
 .access-button[aria-pressed="true"] { color: #3d6650; }
 .topbar-create { min-height: 42px; }
-.mobile-brand { display: none; }
+.mobile-brand { display: none; text-decoration: none; }
 .page-wrap { width: min(100%, 1580px); margin: 0 auto; padding: 39px clamp(24px, 4vw, 58px) 27px; }
 .page-heading { display: flex; min-height: 102px; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
 .eyebrow { display: flex; align-items: center; gap: 9px; margin-bottom: 10px; color: #9b6848; font-size: 10px; font-weight: 800; letter-spacing: 1.45px; }

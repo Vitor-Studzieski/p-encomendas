@@ -147,11 +147,9 @@ do $$
 declare
   v_definition text;
   v_updated text;
-  v_old_assignment text := $old$        v_size_label := nullif(trim(coalesce(
-          v_item->>'size_label',
-          v_item->>'size'
-        )), '');$old$;
-  v_new_assignment text := $new$        v_size_label := nullif(trim(coalesce(
+  v_match_count integer;
+  v_assignment_pattern text := $pattern$v_size_label[[:space:]]*:=[[:space:]]*nullif[[:space:]]*[(][[:space:]]*trim[[:space:]]*[(][[:space:]]*coalesce[[:space:]]*[(][[:space:]]*v_item->>'size_label'[[:space:]]*,[[:space:]]*v_item->>'size'[[:space:]]*[)][[:space:]]*[)][[:space:]]*,[[:space:]]*''[[:space:]]*[)][[:space:]]*;$pattern$;
+  v_new_assignment text := $new$v_size_label := nullif(trim(coalesce(
           v_item->>'size_label',
           v_item->>'size'
         )), '');
@@ -163,14 +161,12 @@ declare
           raise exception using errcode = '22023', message = 'O tamanho selecionado é inválido.';
         end if;
         v_product_size_id := case when v_size_ref is null then null else v_size_ref::uuid end;$new$;
-  v_old_columns text := $old$          size_label,
-          sector_id,$old$;
-  v_new_columns text := $new$          size_label,
+  v_columns_pattern text := $pattern$size_label,[[:space:]]+sector_id,$pattern$;
+  v_new_columns text := $new$size_label,
           product_size_id,
           sector_id,$new$;
-  v_old_values text := $old$          v_size_label,
-          v_sector_id,$old$;
-  v_new_values text := $new$          v_size_label,
+  v_values_pattern text := $pattern$v_size_label,[[:space:]]+v_sector_id,$pattern$;
+  v_new_values text := $new$v_size_label,
           v_product_size_id,
           v_sector_id,$new$;
 begin
@@ -190,21 +186,36 @@ begin
   end if;
   v_definition := v_updated;
 
-  v_updated := replace(v_definition, v_old_assignment, v_new_assignment);
+  select count(*) into v_match_count
+  from regexp_matches(v_definition, v_assignment_pattern, 'g');
+  if v_match_count <> 1 then
+    raise exception 'Esperada uma leitura de tamanho na RPC de pedidos; encontradas %.', v_match_count;
+  end if;
+  v_updated := regexp_replace(v_definition, v_assignment_pattern, v_new_assignment, 'g');
   if v_updated = v_definition then
-    raise exception 'Não foi possível localizar a leitura de tamanho na RPC de pedidos.';
+    raise exception 'A substituição da leitura de tamanho não alterou a RPC de pedidos.';
   end if;
   v_definition := v_updated;
 
-  v_updated := replace(v_definition, v_old_columns, v_new_columns);
+  select count(*) into v_match_count
+  from regexp_matches(v_definition, v_columns_pattern, 'g');
+  if v_match_count <> 1 then
+    raise exception 'Esperada uma lista de colunas dos itens na RPC de pedidos; encontradas %.', v_match_count;
+  end if;
+  v_updated := regexp_replace(v_definition, v_columns_pattern, v_new_columns, 'g');
   if v_updated = v_definition then
-    raise exception 'Não foi possível localizar as colunas dos itens na RPC de pedidos.';
+    raise exception 'A substituição das colunas dos itens não alterou a RPC de pedidos.';
   end if;
   v_definition := v_updated;
 
-  v_updated := replace(v_definition, v_old_values, v_new_values);
+  select count(*) into v_match_count
+  from regexp_matches(v_definition, v_values_pattern, 'g');
+  if v_match_count <> 1 then
+    raise exception 'Esperada uma lista de valores dos itens na RPC de pedidos; encontradas %.', v_match_count;
+  end if;
+  v_updated := regexp_replace(v_definition, v_values_pattern, v_new_values, 'g');
   if v_updated = v_definition then
-    raise exception 'Não foi possível localizar os valores dos itens na RPC de pedidos.';
+    raise exception 'A substituição dos valores dos itens não alterou a RPC de pedidos.';
   end if;
 
   execute v_updated;

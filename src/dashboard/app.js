@@ -10,7 +10,7 @@ let agendaMode = "day";
 const config = window.ORDER_DASHBOARD_CONFIG || {};
 const apiTokenStorageKey = "order-dashboard-api-token";
 const settingsDraftStorageKey = "order-dashboard-settings-draft";
-const newOrderSubmissionStorageKey = "order-dashboard-new-order-v1";
+const newOrderSubmissionStorageKey = "order-dashboard-new-order-v2";
 try { localStorage.removeItem(settingsDraftStorageKey); } catch { /* Storage can be disabled by the browser. */ }
 const searchInput = document.getElementById("search-input");
 const statusFilter = document.getElementById("status-filter");
@@ -449,6 +449,7 @@ function setIntegrationStates() {
   document.querySelector("#new-order-form button[type='submit']").disabled = !canCreateOrders || isSubmittingNewOrder;
   const accessButton = document.getElementById("api-access-button");
   accessButton.textContent = hasAccess ? "Sair" : "Acessar";
+  accessButton.setAttribute("aria-label", hasAccess ? "Sair da operação" : "Entrar na operação");
   accessButton.setAttribute("aria-pressed", String(hasAccess));
   accessButton.title = hasAccess ? "Encerrar sessão segura" : "Entrar na operação";
 }
@@ -633,10 +634,11 @@ async function submitNewOrder(event) {
     };
     const fingerprint = await fingerprintPayload(draft);
     if (!pendingNewOrderSubmission || pendingNewOrderSubmission.fingerprint !== fingerprint) {
+      const eventId = crypto.randomUUID();
       pendingNewOrderSubmission = {
         fingerprint,
-        event_id: crypto.randomUUID(),
-        order_ref: "ENC-" + crypto.randomUUID().toUpperCase()
+        event_id: eventId,
+        order_ref: "PENDING-" + eventId.toUpperCase()
       };
       writeSessionDraft(newOrderSubmissionStorageKey, pendingNewOrderSubmission);
     }
@@ -652,7 +654,8 @@ async function submitNewOrder(event) {
     form.reset();
     itemEditor.reset();
     const warnings = Array.isArray(result?.warnings) ? result.warnings : [];
-    showToast(warnings.length ? "Pedido registrado. " + notificationWarningSummary(warnings) : "Pedido registrado.", warnings.length ? "error" : "success");
+    const orderMessage = result?.order_ref ? "Pedido " + result.order_ref + " registrado." : "Pedido registrado.";
+    showToast(warnings.length ? orderMessage + " " + notificationWarningSummary(warnings) : orderMessage, warnings.length ? "error" : "success");
     await refreshOrders();
   } catch (error) { status.textContent = error.message || "Não foi possível registrar o pedido."; }
   finally {
@@ -764,6 +767,9 @@ async function bootstrapDashboard() {
 }
 
 document.querySelectorAll(".nav-link[data-view]").forEach(button => button.addEventListener("click", () => selectView(button.dataset.view)));
+document.getElementById("brand-home").addEventListener("click", event => { event.preventDefault(); selectView("overview"); });
+document.getElementById("mobile-brand-home").addEventListener("click", event => { event.preventDefault(); selectView("overview"); });
+document.getElementById("profile-settings-button").addEventListener("click", () => selectView("settings"));
 document.getElementById("settings-shortcut").addEventListener("click", () => selectView("settings"));
 searchInput.addEventListener("input", renderRows);
 searchInput.addEventListener("input", renderAgenda);
@@ -771,7 +777,12 @@ statusFilter.addEventListener("change", renderRows);
 statusFilter.addEventListener("change", renderAgenda);
 dateFilter.addEventListener("change", renderRows);
 document.getElementById("refresh-button").addEventListener("click", refreshOrders);
-document.getElementById("view-all-button").addEventListener("click", () => selectView("orders"));
+document.getElementById("view-all-button").addEventListener("click", () => {
+  searchInput.value = "";
+  statusFilter.value = "all";
+  dateFilter.value = "all";
+  selectView("orders");
+});
 document.getElementById("clear-filters").addEventListener("click", () => {
   searchInput.value = "";
   statusFilter.value = "all";
