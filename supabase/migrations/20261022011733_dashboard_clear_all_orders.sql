@@ -121,7 +121,7 @@ grant execute on function public.dashboard_clear_all_orders() to service_role;
 
 notify pgrst, 'reload schema';
 
--- Perform the requested one-time purge when this migration is applied.
-select public.dashboard_clear_all_orders();
+-- The destructive purge is invoked only from the explicit dashboard action.
+-- Never call dashboard_clear_all_orders() automatically from a migration.
 
 commit;

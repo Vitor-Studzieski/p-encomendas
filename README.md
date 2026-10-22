@@ -11,13 +11,13 @@ Dashboard e backend em código para pedidos, agenda de produção e notificaçõ
 - Encaminhamento de itens e resumos separados para cada setor; cada equipe recebe somente os itens atribuídos a ela.
 - Cada pedido pode envolver um ou mais dos cinco setores; o painel mostra apenas as áreas com itens no pedido.
 - Registro de problemas de produção, conclusão de todos os setores e confirmação da retirada por eventos idempotentes.
-- Avisos de WhatsApp enviados pelo backend à Z-API.
+- Avisos de WhatsApp registrados primeiro numa caixa de saída persistente e enviados pela Vercel Queue, com novas tentativas e chave de deduplicação.
 - Webhook de entrada da Z-API: a fiscal recebe o link do formulário. O primeiro setor presente nos itens recebe a confirmação inicial; `1` confirma e `2` avisa somente a fiscal para investigar. Após a confirmação, os demais setores com itens recebem apenas suas linhas. O cliente só é informado da recusa após a análise final da fiscal, registrada com `ENCERRAR <código>`.
 - Pesquisa de satisfação enviada duas horas após a retirada, com link assinado.
 - Resumo de produção diário às 06:00 no horário de São Paulo.
 - Limites de tentativas por origem para autenticação, formulário público, pesquisa e callback da Z-API. Os identificadores armazenados no Supabase são HMACs, não endereços IP.
 
-As regras transacionais de pedidos são funções PostgreSQL chamadas pela API: `dashboard_process_event`, `dashboard_upsert_production_agenda` e `dashboard_order_readiness`. A automação de pesquisa usa o Vercel Workflow SDK, sem workflow visual ou serviço n8n.
+As regras transacionais de pedidos são funções PostgreSQL chamadas pela API: `dashboard_process_event`, `dashboard_upsert_production_agenda` e `dashboard_order_readiness`. A confirmação e a gravação da agenda passam pela mesma transação. A pesquisa usa o Vercel Workflow SDK; os avisos usam a Vercel Queue e ficam na caixa de saída do Supabase até a entrega.
 
 ![Arquitetura atual das encomendas](docs/architecture-current.svg)
 
@@ -61,12 +61,17 @@ As páginas HTML na raiz são entradas multipágina do Vite. O conteúdo de `pub
 
 ## Supabase
 
-Antes do deploy, abra o **SQL Editor** do projeto Supabase usado pela aplicação e execute, em ordem, `supabase/migrations/20261019000000_dashboard_runtime.sql`, `supabase/migrations/20261020104015_add_department_workflow.sql`, `supabase/migrations/20261020112117_fix_dashboard_phone_normalization.sql`, `supabase/migrations/20261020134546_add_confeitaria_sector.sql`, `supabase/migrations/20261021084158_normalize_product_size_selection.sql` e `supabase/migrations/20261021134036_add_confectionery_rotisserie_contacts.sql`. A primeira migração prepara as tabelas, rotinas e permissões do runtime. A segunda adiciona os contatos de Açougue e Frios e ativa esses setores. A terceira adiciona a normalização E.164 que a rotina de pedidos usa. A quarta ativa Confeitaria. A quinta liga cada item do pedido ao tamanho pelo ID do catálogo e atualiza a validação para aceitar esse ID, mantendo o rótulo para o histórico. A sexta separa os contatos de Confeitaria e Rotisseria dos contatos da Padaria.
+Antes do deploy, abra o **SQL Editor** do projeto Supabase usado pela aplicação e execute, em ordem, as migrações necessárias que ainda não foram aplicadas: `20261019000000_dashboard_runtime.sql`, `20261020104015_add_department_workflow.sql`, `20261020112117_fix_dashboard_phone_normalization.sql`, `20261020134546_add_confeitaria_sector.sql`, `20261021084158_normalize_product_size_selection.sql`, `20261021120905_add_sequential_order_codes.sql`, `20261021134036_add_confectionery_rotisserie_contacts.sql`, `20261021140729_enable_review_history_reads.sql`, `20261022011733_dashboard_clear_all_orders.sql` e `20261022103016_atomic_order_event_and_agenda.sql`. A última migração exige as assinaturas atuais de `dashboard_process_event`, `dashboard_upsert_production_agenda` e `dashboard_create_order_with_code`. Use `supabase/sql-editor/verify_atomic_order_and_outbox.sql` depois para conferir as assinaturas, permissões e fila.
+
+`dashboard_clear_all_orders()` é chamado somente pelo botão explícito da dashboard. A migração de limpeza não deve apagar pedidos automaticamente ao ser aplicada ou reaplicada.
+
+As definições atuais das rotinas-base de negócio foram criadas diretamente no SQL Editor e ainda não estão todas guardadas como migrações neste repositório. Para tornar um projeto novo totalmente reproduzível, rode `supabase/sql-editor/export_business_routines.sql` e salve as definições retornadas numa migração-base versionada antes de depender de uma instalação do zero.
 
 A migração cria e restringe:
 
 - `public.dashboard_operation_settings`, que guarda os telefones dos cinco setores, da Fiscal e o telefone padrão do cliente.
-- `public.dashboard_automation_runs`, que impede o envio duplicado de notificações de pedidos, resumos e pesquisas agendadas.
+- `public.dashboard_automation_runs`, que protege resumos e pesquisas agendadas contra duplicidade.
+- `public.dashboard_whatsapp_outbox`, que guarda mensagens de saída, tentativas, erros e estado de entrega.
 - `public.dashboard_automation_audit`, preservando os registros antigos de auditoria quando a tabela existe.
 - `public.claim_dashboard_automation`, uma função de uso interno para reclamar cada tarefa uma única vez.
 - Um schema privado para contadores de limitação de tentativas, acessível somente pelo backend.

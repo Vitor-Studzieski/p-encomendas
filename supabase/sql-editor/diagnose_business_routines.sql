@@ -16,17 +16,18 @@ with expected_rpc(routine_name, signature, expected_arg_names) as (
     ),
     (
       'dashboard_upsert_production_agenda',
-      'public.dashboard_upsert_production_agenda(text,jsonb,timestamp with time zone,timestamp with time zone)',
-      array['p_order_ref', 'p_sector', 'p_planned_start_at', 'p_due_at']::text[]
+      null::text,
+      array['p_order_ref', 'p_sector', 'p_planned_start_at', 'p_due_at', 'p_status']::text[]
     )
 ),
 rpc_rows as (
   select
     'RPC'::text as categoria,
     e.routine_name as objeto,
-    e.signature as assinatura_esperada,
+    coalesce(e.signature, 'dashboard_upsert_production_agenda: 5 argumentos, p_status padrão') as assinatura_esperada,
     case
       when p.oid is null then 'AUSENTE: assinatura esperada não encontrada'
+      when e.routine_name = 'dashboard_upsert_production_agenda' and p.matching_count <> 1 then 'ERRO: quantidade inesperada de sobrecargas compatíveis'
       when p.prokind <> 'f' then 'ERRO: objeto encontrado não é função'
       when p.proargnames[1:p.pronargs] is distinct from e.expected_arg_names then 'ERRO: nomes dos parâmetros não correspondem ao PostgREST'
       when not has_function_privilege('service_role', p.oid, 'EXECUTE') then 'ERRO: service_role sem EXECUTE'
@@ -53,8 +54,29 @@ rpc_rows as (
     end as processo_le_product_size_id,
     null::text as detalhe
   from expected_rpc e
-  left join pg_catalog.pg_proc p
-    on p.oid = pg_catalog.to_regprocedure(e.signature)
+  left join lateral (
+    select p1.*, count(*) over () as matching_count
+    from pg_catalog.pg_proc p1
+    join pg_catalog.pg_namespace n1 on n1.oid = p1.pronamespace
+    where (
+      e.signature is not null
+      and p1.oid = pg_catalog.to_regprocedure(e.signature)
+    ) or (
+      e.routine_name = 'dashboard_upsert_production_agenda'
+      and n1.nspname = 'public'
+      and p1.proname = e.routine_name
+      and p1.prokind = 'f'
+      and p1.pronargs = 5
+      and p1.pronargdefaults = 1
+      and p1.proargnames[1:5] = e.expected_arg_names
+      and p1.proargtypes[0] = 'text'::regtype::oid
+      and p1.proargtypes[1] = 'jsonb'::regtype::oid
+      and p1.proargtypes[2] = 'timestamp with time zone'::regtype::oid
+      and p1.proargtypes[3] = 'timestamp with time zone'::regtype::oid
+    )
+    order by p1.pronargs
+    limit 1
+  ) p on true
   left join pg_catalog.pg_language l on l.oid = p.prolang
   left join lateral (
     select pg_catalog.string_agg(

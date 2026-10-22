@@ -210,8 +210,8 @@ module.exports = async function zapiInbound(request, response) {
       }
       if (orderRef.length > 180) return json(response, 200, { ok: true, ignored: true });
       if (decision === "RECUSAR") {
-        numericReplyActionStarted = Boolean(numericReplyClaimKey);
         const review = await requestFiscalReview(orderRef, "", "zapi-review:" + messageId, selectedOrder ? productionReplyLabel(selectedOrder, senderRoutes) : [...new Set(senderRoutes.map(route => route.label))].join(", "), "production_whatsapp");
+        numericReplyActionStarted = Boolean(numericReplyClaimKey);
         const selectedLabel = selectedOrder?.display_id || (selectedOrder?.customer_name ? "o pedido de " + selectedOrder.customer_name : "o pedido selecionado");
         const reply = review.warnings.length
           ? "Recusa registrada para " + selectedLabel + ". O pedido continua pendente, mas não consegui confirmar o aviso à Fiscal. Avise a operação diretamente."
@@ -228,7 +228,6 @@ module.exports = async function zapiInbound(request, response) {
       }
       const confirmedRouteKey = leadProductionRouteKey(selectedOrder?.items);
       const confirmedRoute = groupProductionItems(selectedOrder?.items).get(confirmedRouteKey);
-      numericReplyActionStarted = Boolean(numericReplyClaimKey);
       const result = await dispatchEvent({
         event_id: "zapi-reply:" + messageId,
         event_type: "order.confirmed",
@@ -240,6 +239,7 @@ module.exports = async function zapiInbound(request, response) {
           occurred_at: new Date().toISOString()
         }
       });
+      numericReplyActionStarted = Boolean(numericReplyClaimKey);
       const selectedLabel = selectedOrder?.display_id || (selectedOrder?.customer_name ? "o pedido de " + selectedOrder.customer_name : "o pedido selecionado");
       const selectedSector = productionRouteLabel(confirmedRoute);
       const replyWarnings = await sendEventNotification(phone, "Confirmação registrada para " + selectedLabel + (selectedSector ? " (" + selectedSector + ")" : "") + ". O pedido foi marcado como confirmado no painel.", {

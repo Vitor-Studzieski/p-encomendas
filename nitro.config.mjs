@@ -9,6 +9,11 @@ export default defineConfig({
   preset: "vercel",
   vercel: {
     entryFormat: "node",
+    queues: {
+      triggers: [
+        { topic: "whatsapp-notifications", retryAfterSeconds: 60 }
+      ]
+    },
     functions: {
       runtime: "nodejs24.x",
       includeFiles: ["server-handlers/**/*", "lib/**/*"]

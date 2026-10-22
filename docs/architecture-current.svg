@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1400" viewBox="0 0 1600 1400" role="img" aria-labelledby="title desc">
   <title id="title">Arquitetura atual do sistema de encomendas</title>
-  <desc id="desc">Fluxo de pedidos por setor e item, com WhatsApp Z-API, formulário, Supabase, dashboard, confirmação 1, recusa 2 e revisão da Fiscal.</desc>
+  <desc id="desc">Fluxo de pedidos por setor e item, com Supabase como fonte de dados, agenda transacional, caixa de saída durável e Vercel Queue para entregas ao WhatsApp.</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#789185"/></marker>
     <marker id="arrow-green" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#217755"/></marker>
@@ -12,7 +12,7 @@
   <rect class="bg" width="1600" height="1400"/>
   <text x="54" y="58" class="eyebrow">PAINEL DA OPERAÇÃO · VISÃO TÉCNICA</text>
   <text x="54" y="101" class="title">Arquitetura atual das encomendas</text>
-  <text x="54" y="130" class="subtitle">Fluxo por item e setor · confirmação inicial somente ao setor responsável · 21/10/2026</text>
+  <text x="54" y="130" class="subtitle">Fluxo por item e setor · confirmação inicial somente ao setor responsável · 22/10/2026</text>
 
   <text x="54" y="174" class="eyebrow">1 · ABERTURA E REGISTRO DO PEDIDO</text>
   <rect x="50" y="192" width="245" height="120" rx="16" class="card"/>
@@ -51,11 +51,11 @@
   <path d="M 621 450 H 727" class="line"/>
   <rect x="735" y="375" width="445" height="150" rx="18" class="dark"/>
   <text x="763" y="411" class="h white">Supabase · fonte de dados</text>
-  <text x="763" y="441" class="body white"><tspan x="763">RPC cria código interno ENC AAAA.SSS.NNN.</tspan><tspan x="763" dy="22">Guarda cliente, pedido, itens e setor de cada item.</tspan><tspan x="763" dy="22">Ao confirmar, registra ou atualiza a agenda de produção.</tspan></text>
+  <text x="763" y="441" class="body white"><tspan x="763">RPC cria código interno ENC AAAA.SSS.NNN.</tspan><tspan x="763" dy="22">Pedido, itens, confirmação e agenda na mesma transação.</tspan><tspan x="763" dy="22">Mensagens ficam na caixa de saída até serem enviadas.</tspan></text>
   <path d="M 1181 450 H 1287" class="line"/>
   <rect x="1295" y="375" width="255" height="150" rx="18" class="card"/>
   <text x="1321" y="411" class="h">Dashboard</text>
-  <text x="1321" y="441" class="body"><tspan x="1321">Pedidos, produção, agenda,</tspan><tspan x="1321" dy="22">histórico e contatos por setor.</tspan><tspan x="1321" dy="22">Ações via API; cron resume às 06h.</tspan></text>
+  <text x="1321" y="441" class="body"><tspan x="1321">Pedidos, produção, agenda,</tspan><tspan x="1321" dy="22">histórico e contatos por setor.</tspan><tspan x="1321" dy="22">Fila tenta novamente o envio à Z-API.</tspan></text>
   <path d="M 1110 526 V 550 H 420 V 575" class="dash"/>
   <path d="M 1420 526 V 550 H 1260 V 575" class="dash"/>
 
@@ -102,5 +102,5 @@
   <text x="877" y="1271" class="h">Aviso final ao cliente</text>
   <text x="877" y="1298" class="body">Só após a decisão final da Fiscal; sem código interno.</text>
   <rect x="50" y="1344" width="1500" height="38" rx="10" fill="#fff3d9" stroke="#e7c987"/>
-  <text x="70" y="1368" class="small">Ação necessária antes de ativar os novos contatos: executar a migração 20261021134036_add_confectionery_rotisserie_contacts.sql no Supabase e cadastrar esses números em Configurações.</text>
+  <text x="70" y="1368" class="small">Pendência para instalações novas: exportar e versionar as definições das rotinas-base de negócio ainda mantidas diretamente no SQL Editor.</text>
 </svg>

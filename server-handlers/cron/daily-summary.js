@@ -4,6 +4,7 @@ const { fail, json, methodNotAllowed, requireCron } = require("../../lib/http");
 const { formatOrderItems } = require("../../lib/order-items");
 const { groupProductionItems, productionPhone, productionRouteLabel } = require("../../lib/production-routing");
 const { claimAutomationRun, getOperationSettings, getSummaryOrders, updateAutomationRun } = require("../../lib/supabase");
+const { publishPendingWhatsappOutbox } = require("../../lib/whatsapp-outbox");
 const { sendText } = require("../../lib/zapi");
 
 function localDateParts(now = new Date()) {
@@ -32,6 +33,12 @@ module.exports = async function dailySummary(request, response) {
   if (request.method !== "GET") return methodNotAllowed(response, ["GET"]);
   if (!requireCron(request, response)) return;
   try {
+    try {
+      const recovery = await publishPendingWhatsappOutbox(100);
+      if (recovery.warnings.length) console.error("Algumas mensagens pendentes não puderam ser publicadas na fila do WhatsApp.", recovery.warnings.length);
+    } catch (error) {
+      console.error("Falha ao recuperar mensagens pendentes da caixa de saída: " + error.message);
+    }
     const today = localDateParts();
     const tomorrow = addDays(today, 1);
     const [settings, orders] = await Promise.all([getOperationSettings(), getSummaryOrders(today, tomorrow)]);
