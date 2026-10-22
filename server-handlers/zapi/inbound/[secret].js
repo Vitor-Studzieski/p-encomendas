@@ -44,6 +44,55 @@ function productionReplyLabel(order, routes) {
   return names.length ? names.join(", ") : [...new Set(routes.map(route => route.label))].join(", ");
 }
 
+function ordersAnswerableBySender(orders, routeKeys, decision) {
+  return orders.filter(order => {
+    const pending = ["awaiting_confirmation", "pending"].includes(String(order.status || "").toLowerCase());
+    const leadRouteKey = leadProductionRouteKey(order.items);
+    if (decision === "CONFIRMAR") return pending && routeKeys.includes(leadRouteKey);
+    if (pending) return routeKeys.includes(leadRouteKey);
+    return matchingOrderSectors(order, routeKeys).length > 0;
+  });
+}
+
+function productionOrderCodes(orders, limit = 5) {
+  const uniqueCodes = [...new Set(orders
+    .map(order => String(order.display_id || "").trim())
+    .filter(Boolean))];
+  const shown = uniqueCodes.slice(0, limit);
+  if (uniqueCodes.length > limit) shown.push("e mais " + (uniqueCodes.length - limit));
+  return shown;
+}
+
+function multipleOrdersReply(orders, routes) {
+  const sectors = [...new Set(orders.map(order => productionReplyLabel(order, routes)).filter(Boolean))];
+  const sectorText = sectors.length ? sectors.join(", ") : "seu setor";
+  const codes = productionOrderCodes(orders);
+  const lines = [
+    "Há mais de um pedido aguardando resposta para " + sectorText + ".",
+    "Responda 1 <código> para confirmar ou 2 <código> para pedir análise da Fiscal.",
+    codes.length ? "Códigos dos pedidos: " + codes.join(", ") + "." : "Confira o código exibido no topo de cada mensagem do pedido."
+  ];
+  if (codes.length < orders.length) lines.push("Há pedido sem código disponível; peça à operação para verificar antes de responder.");
+  return lines.join("\n");
+}
+
+function unknownOrderReply(reference, matchingOrders, routes) {
+  const sectors = [...new Set(matchingOrders.map(order => productionReplyLabel(order, routes)).filter(Boolean))];
+  const sectorText = sectors.length ? sectors.join(", ") : "seu setor";
+  const codes = productionOrderCodes(matchingOrders);
+  const lines = [
+    "Não localizei o pedido \"" + String(reference).slice(0, 180) + "\". Nenhuma resposta foi registrada.",
+    "Confira o código no topo da mensagem do pedido."
+  ];
+  if (codes.length) {
+    lines.push("Pedidos disponíveis para resposta em " + sectorText + ": " + codes.join(", ") + ".");
+    if (matchingOrders.length === 1) lines.push("Como há somente um pedido aguardando, você também pode responder apenas 1 ou 2.");
+  } else {
+    lines.push("Não há pedido ativo disponível para resposta deste setor.");
+  }
+  return lines.join("\n");
+}
+
 module.exports = async function zapiInbound(request, response) {
   if (request.method !== "POST") return methodNotAllowed(response, ["POST"]);
   const expected = process.env.ZAPI_WEBHOOK_SECRET;
@@ -82,20 +131,21 @@ module.exports = async function zapiInbound(request, response) {
       const decision = numericAnswer ? (numericAnswer[1] === "1" ? "CONFIRMAR" : "RECUSAR") : commandDecision;
       let orderRef = command ? command[2].trim() : String(numericAnswer?.[2] || "").trim();
       let selectedOrder = null;
+      if (orderRef.length > 180) {
+        const replyWarnings = await sendEventNotification(phone, "O código informado é longo demais. Confira e envie novamente o código exibido no topo da mensagem do pedido.", {
+          tag: "zapi-production-help",
+          eventId: "zapi-ack:" + messageId
+        });
+        return json(response, 200, { ok: true, processed: false, reason: "order_reference_too_long", warnings: replyWarnings });
+      }
       if (numericAnswer && !orderRef) {
         const openOrders = await getOpenProductionOrders();
-        const matchingOrders = openOrders.filter(order => {
-          const pending = ["awaiting_confirmation", "pending"].includes(String(order.status || "").toLowerCase());
-          const leadRouteKey = leadProductionRouteKey(order.items);
-          if (decision === "CONFIRMAR") return pending && senderRouteKeys.includes(leadRouteKey);
-          if (pending) return senderRouteKeys.includes(leadRouteKey);
-          return matchingOrderSectors(order, senderRouteKeys).length > 0;
-        });
+        const matchingOrders = ordersAnswerableBySender(openOrders, senderRouteKeys, decision);
         if (matchingOrders.length !== 1) {
           const reply = matchingOrders.length
-            ? "Há mais de um pedido ativo deste setor. Para a Padaria confirmar pelo WhatsApp sem risco de alterar o pedido errado, responda 1 seguido do código no topo da mensagem. Para informar que não consegue produzir, responda 2 seguido do código. Exemplo: 1 ENC 2026.001.001."
+            ? multipleOrdersReply(matchingOrders, senderRoutes)
             : decision === "CONFIRMAR"
-              ? "Não encontrei pedido aguardando confirmação inicial destinado a este setor. Confira se o código no topo da mensagem corresponde a um pedido aberto. Se necessário, peça à operação para verificar o status."
+              ? "Não encontrei pedido aguardando confirmação inicial destinado a " + ([...new Set(senderRoutes.map(route => route.label))].join(", ") || "este setor") + ". Confira se o pedido continua aberto ou peça à operação para verificar o status."
               : "Não encontrei um pedido ativo deste setor para vincular à resposta. Confira o código e o setor no topo da mensagem.";
           const replyWarnings = await sendEventNotification(phone, reply, {
             tag: "zapi-production-help",
@@ -108,7 +158,21 @@ module.exports = async function zapiInbound(request, response) {
         if (!orderRef) throw Object.assign(new Error("O pedido aguardando confirmação não tem código interno."), { statusCode: 409 });
       } else {
         selectedOrder = await getOrderByReference(orderRef);
-        if (!selectedOrder) throw Object.assign(new Error("Pedido não encontrado para atualizar."), { statusCode: 404 });
+        if (!selectedOrder) {
+          const openOrders = await getOpenProductionOrders();
+          const matchingOrders = ordersAnswerableBySender(openOrders, senderRouteKeys, decision);
+          const replyWarnings = await sendEventNotification(phone, unknownOrderReply(orderRef, matchingOrders, senderRoutes), {
+            tag: "zapi-production-help",
+            eventId: "zapi-ack:" + messageId
+          });
+          return json(response, 200, {
+            ok: true,
+            processed: false,
+            reason: "order_reference_not_found",
+            available_order_refs: productionOrderCodes(matchingOrders),
+            warnings: replyWarnings
+          });
+        }
         const pending = ["awaiting_confirmation", "pending"].includes(String(selectedOrder.status || "").toLowerCase());
         const leadRouteKey = leadProductionRouteKey(selectedOrder.items);
         const assignedToSender = matchingOrderSectors(selectedOrder, senderRouteKeys).length > 0;
@@ -199,7 +263,7 @@ module.exports = async function zapiInbound(request, response) {
 
     if (isProductionSender) {
       const help = "Quando seu setor receber a confirmação inicial do pedido, envie 1 para confirmar. Se não puder produzir seus itens, envie 2 para pedir análise da Fiscal. A recusa é encaminhada primeiro somente à Fiscal; o cliente só é avisado após a análise final.";
-      await sendEventNotification(phone, help + "\n\nSe houver mais de um pedido compatível com seu setor, responda 1 seguido do código no topo para confirmar ou 2 seguido do código para pedir análise. Exemplo: 1 ENC 2026.001.001.", {
+      await sendEventNotification(phone, help + "\n\nSe houver mais de um pedido compatível, responda 1 ou 2 seguido do código que aparece no topo da mensagem escolhida.", {
         tag: "zapi-production-help",
         eventId: "zapi-message:" + messageId
       });
