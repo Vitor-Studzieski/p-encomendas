@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#12385c">
+  <title>Contas por setor · Encomendas</title>
+  <link rel="stylesheet" href="/src/sector/accounts.css">
+  <script type="module" src="/src/sector/accounts.js"></script>
+</head>
+<body>
+  <header class="accounts-header">
+    <a class="portal-brand" href="/setor.html" aria-label="Portal independente de setores"><span class="brand-mark">E</span><span><strong>Encomendas</strong><small>GESTÃO DO PORTAL</small></span></a>
+    <a class="header-link" href="/setor.html">Portal da equipe</a>
+  </header>
+  <main class="accounts-main">
+    <section class="page-heading"><p class="eyebrow">PORTAL INDEPENDENTE</p><h1>Operação por setores</h1><p>Cadastre pedidos próprios e gerencie os acessos da equipe. Nada aqui sincroniza com a dashboard ou com o WhatsApp.</p></section>
+    <div class="notice" id="accounts-notice" role="status" hidden></div>
+    <section class="access-required panel" id="access-required" hidden>
+      <h2>Entrar como gerente do portal</h2>
+      <p>Esta conta pertence ao portal independente e não usa a credencial da dashboard.</p>
+      <form id="manager-login-form" class="account-form login-manager-form">
+        <label>E-mail<input id="manager-email" type="email" autocomplete="username" required maxlength="254"></label>
+        <label>Senha<input id="manager-password" type="password" autocomplete="current-password" required maxlength="256"></label>
+        <div class="form-actions"><p id="manager-login-message" role="status" aria-live="polite"></p><button class="button button-primary" id="manager-login-button" type="submit">Entrar</button></div>
+      </form>
+    </section>
+    <section id="accounts-content" hidden>
+      <div class="manager-toolbar"><span id="manager-name"></span><button class="button button-secondary" id="manager-logout" type="button">Sair</button></div>
+      <section class="panel create-panel">
+        <div class="section-heading"><div><h2>Registrar encomenda</h2><p>Este pedido fica somente no banco próprio do portal e aparece para os setores selecionados.</p></div></div>
+        <form id="order-form" class="account-form">
+          <label>Cliente<input name="customer_name" required maxlength="120"></label>
+          <label>WhatsApp ou telefone (opcional)<input name="customer_phone" type="tel" maxlength="40" autocomplete="tel"></label>
+          <label>Data de retirada<input name="requested_date" type="date" required></label>
+          <label>Horário<input name="requested_time" type="time" required></label>
+          <label>Local de retirada<input name="pickup_location" maxlength="240"></label>
+          <div class="order-items-editor"><div class="section-heading"><div><h3>Itens e setores responsáveis</h3><p>O primeiro setor da lista confirma a encomenda.</p></div><button class="button button-secondary" id="add-order-item" type="button">Adicionar item</button></div><div id="order-item-rows"></div></div>
+          <div class="form-actions"><p id="order-form-message" role="status" aria-live="polite"></p><button class="button button-primary" id="create-order-button" type="submit">Cadastrar encomenda</button></div>
+        </form>
+      </section>
+      <section class="panel list-panel">
+        <div class="section-heading"><div><h2>Encomendas do portal</h2><p>Mostra as últimas 100 encomendas registradas neste sistema independente.</p></div><button class="button button-secondary" id="reload-orders" type="button">Atualizar</button></div>
+        <div class="table-scroll"><table><thead><tr><th>Código</th><th>Cliente</th><th>Retirada</th><th>Situação</th></tr></thead><tbody id="portal-orders-rows"></tbody></table></div>
+        <div class="empty-state" id="portal-orders-empty" hidden>Nenhuma encomenda cadastrada no portal.</div>
+      </section>
+      <section class="panel create-panel">
+        <div class="section-heading"><div><h2>Criar conta operacional</h2><p>O sistema cria o usuário no Supabase Auth e associa a função.</p></div></div>
+        <form id="account-form" class="account-form">
+          <label>Nome da equipe ou pessoa<input name="display_name" required maxlength="120" autocomplete="name"></label>
+          <label>E-mail de acesso<input name="email" type="email" required maxlength="254" autocomplete="email"></label>
+          <label>Função<select name="role" id="account-role" required><option value="sector">Setor</option><option value="fiscal">Fiscal</option></select></label>
+          <label id="sector-field">Setor<select name="sector_id" id="account-sector" required><option value="">Carregando setores…</option></select></label>
+          <label class="password-field">Senha inicial<input name="password" type="password" minlength="12" maxlength="128" required autocomplete="new-password"><small>Use 12 caracteres ou mais. A equipe será obrigada a trocá-la no primeiro acesso.</small></label>
+          <div class="form-actions"><p id="account-form-message" role="status" aria-live="polite"></p><button class="button button-primary" id="create-account-button" type="submit">Criar conta</button></div>
+        </form>
+      </section>
+      <section class="panel list-panel">
+        <div class="section-heading"><div><h2>Acessos cadastrados</h2><p>Suspender bloqueia a entrada sem apagar a conta ou o histórico.</p></div><button class="button button-secondary" id="reload-accounts" type="button">Atualizar</button></div>
+        <div class="table-scroll"><table><thead><tr><th>Conta</th><th>Função</th><th>Setor</th><th>Situação</th><th></th></tr></thead><tbody id="accounts-rows"></tbody></table></div>
+        <div class="empty-state" id="accounts-empty" hidden>Nenhuma conta operacional cadastrada.</div>
+      </section>
+    </section>
+  </main>
+  <footer class="accounts-footer">Portal independente · Sem integração com dashboard ou WhatsApp</footer>
+</body>
+</html>

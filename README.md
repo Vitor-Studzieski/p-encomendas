@@ -16,6 +16,7 @@ Dashboard e backend em código para pedidos, agenda de produção e notificaçõ
 - Pesquisa de satisfação enviada duas horas após a retirada, com link assinado.
 - Resumo de produção diário às 06:00 no horário de São Paulo.
 - Limites de tentativas por origem para autenticação, formulário público, pesquisa e callback da Z-API. Os identificadores armazenados no Supabase são HMACs, não endereços IP.
+- Portal opcional e independente para contas por setor, cadastro próprio de encomendas, produção e revisão da Fiscal. Usa tabelas próprias e não sincroniza pedidos nem aciona dashboard ou WhatsApp.
 
 As regras transacionais de pedidos são funções PostgreSQL chamadas pela API: `dashboard_process_event`, `dashboard_upsert_production_agenda` e `dashboard_order_readiness`. A confirmação e a gravação da agenda passam pela mesma transação. A pesquisa usa o Vercel Workflow SDK; os avisos usam a Vercel Queue e ficam na caixa de saída do Supabase até a entrega.
 
@@ -67,6 +68,24 @@ Antes do deploy, abra o **SQL Editor** do projeto Supabase usado pela aplicaçã
 
 As definições atuais das rotinas-base de negócio foram criadas diretamente no SQL Editor e ainda não estão todas guardadas como migrações neste repositório. Para tornar um projeto novo totalmente reproduzível, rode `supabase/sql-editor/export_business_routines.sql` e salve as definições retornadas numa migração-base versionada antes de depender de uma instalação do zero.
 
+### Portal independente por setor (opcional)
+
+`/setor.html` é a entrada da equipe e `/contas-setores.html` é a área de gerência. O portal usa contas individuais do Supabase Auth, sessão `HttpOnly` própria e tabelas com prefixo `sector_portal_`. Pedidos, itens, setores, andamento e análises da Fiscal ficam nesses registros próprios. Nenhuma operação do portal consulta ou altera os pedidos, a agenda, as funções, as notificações ou o fluxo de WhatsApp da dashboard existente.
+
+Para instalar, execute somente `supabase/sql-editor/create_sector_portal.sql` no SQL Editor. A migração `20261022144509_create_standalone_sector_portal.sql` contém a mesma estrutura para instalações que usam a CLI; não aplique as duas formas em sequência. O script cria os cinco setores iniciais e funções transacionais próprias, protegidas por RLS e disponíveis apenas ao backend. Não remove nem reescreve dados existentes.
+
+Configure `SUPABASE_PUBLISHABLE_KEY` (ou `SUPABASE_ANON_KEY`) e `SECTOR_SESSION_SECRET` com pelo menos 32 caracteres. A conta inicial de gerência é criada em duas etapas: crie um usuário em Supabase → Authentication e depois associe-o à tabela exclusiva do portal, substituindo o e-mail no comando:
+
+```sql
+insert into public.sector_portal_accounts (auth_user_id, email, display_name, role, sector_id, active)
+select id, lower(email), 'Gerência do portal', 'manager', null, true
+from auth.users
+where lower(email) = lower('gerencia@exemplo.com')
+on conflict (auth_user_id) do nothing;
+```
+
+A gerência entra em `/contas-setores.html`, cria contas de setor/Fiscal e registra as encomendas independentes. O primeiro setor escolhido nos itens confirma a encomenda; os demais setores só recebem seus próprios itens dentro do portal. A equipe confirma, inicia e conclui a produção; pedidos com impedimentos vão à fila da Fiscal. A decisão final é registrada no portal e não envia mensagem automática ao cliente. `SECTOR_PORTAL_ENABLED=false` mantém o portal desligado; ativá-lo não muda o fluxo antigo da dashboard nem do WhatsApp.
+
 A migração cria e restringe:
 
 - `public.dashboard_operation_settings`, que guarda os telefones dos cinco setores, da Fiscal e o telefone padrão do cliente.
@@ -113,6 +132,11 @@ A fiscal recebe um endereço como `https://SEU-DOMINIO/pedido.html#acesso=ASSINA
 | Rota | Uso |
 | --- | --- |
 | `GET /api/auth/session`, `POST /api/auth/session`, `DELETE /api/auth/session` | Verifica, inicia e encerra a sessão segura da dashboard |
+| `GET /api/sector/session`, `POST /api/sector/session`, `DELETE /api/sector/session` | Verifica, inicia e encerra uma sessão individual de setor |
+| `GET /api/sector/workboard` | Lista a fila permitida para o setor ou para a Fiscal |
+| `POST /api/sector/actions` | Confirma, solicita análise e atualiza a produção nos pedidos próprios do portal |
+| `GET/POST /api/sector/orders` | Lista as encomendas próprias e permite à gerência criar uma encomenda no portal |
+| `GET/POST/PATCH /api/sector/accounts` | Lista, cria, suspende e reativa contas; exige uma sessão de gerência do portal |
 | `GET /api/orders` | Lista pedidos |
 | `GET /api/settings`, `PUT /api/settings` | Lê e grava os contatos da operação |
 | `POST /api/order-actions` | Converte ações da dashboard em eventos |

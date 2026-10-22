@@ -104,7 +104,7 @@ function showOrder(id) {
   const reasonLabel = order.status === "awaiting_confirmation" && !order.productionRefused ? "Motivo para a fiscal analisar (opcional)" : "";
   const confirmationHint = order.status === "awaiting_confirmation"
     ? order.productionRefused
-      ? "<p class=\"connection-hint\">A Padaria recusou inicialmente. Confirme manualmente somente se a equipe encontrou uma alternativa viável.</p>"
+      ? "<p class=\"connection-hint\">A recusa inicial do setor " + escapeHtml(order.sector || "responsável") + " foi registrada. Confirme manualmente somente se a equipe encontrou uma alternativa viável.</p>"
       : "<p class=\"connection-hint\">A Padaria deve responder primeiro pelo WhatsApp. A confirmação manual fica disponível depois que ela responder 2.</p>"
     : "";
   const actionMarkup = actions.length
@@ -182,7 +182,7 @@ function selectView(view) {
   document.getElementById("breadcrumb-current").textContent = titles[view];
   document.getElementById("page-title").textContent = titles[view];
   document.getElementById("page-subtitle").textContent = {
-    overview: "Acompanhe encomendas, produção e retirada.",
+    overview: "Pedidos organizados por etapa, da confirmação à retirada.",
     orders: "Acompanhe cada encomenda e atualize a situação na cozinha.",
     agenda: "Consulte os pedidos aceitos e atualize o andamento dos itens por setor.",
     history: "Consulte pedidos retirados, recusados e cancelados.",
@@ -193,7 +193,12 @@ function selectView(view) {
   document.getElementById("metrics").hidden = view === "settings";
   document.getElementById("connection-notice").hidden = view === "settings" || connectionMode === "connected";
   document.getElementById("settings-section").hidden = view !== "settings";
-  document.getElementById("list-title").textContent = view === "history" ? "Histórico de pedidos" : view === "orders" ? "Pedidos ativos" : "Pedidos recentes";
+  document.getElementById("list-title").textContent = view === "history" ? "Histórico de pedidos" : view === "orders" ? "Pedidos ativos" : view === "overview" ? "Quadro de encomendas" : "Pedidos recentes";
+  document.getElementById("list-caption").textContent = view === "overview"
+    ? "Acompanhe cada encomenda conforme avança pela operação."
+    : view === "history"
+      ? "Consulte os pedidos retirados, recusados e cancelados."
+      : "Veja os itens, o horário de retirada e o andamento de cada encomenda.";
   renderRows();
   renderAgenda();
 }
@@ -445,16 +450,26 @@ function setIntegrationStates() {
   const hasOrders = hasAccess && Boolean(config.ordersEndpoint);
   const hasActions = hasAccess && Boolean(config.orderActionEndpoint);
   const hasContacts = hasAccess && Boolean(config.settingsEndpoint);
-  setIntegrationPill("orders-api-state", connectionMode === "connected" ? "Conectado" : connectionMode === "error" && hasOrders ? "Falha" : hasOrders ? "Aguardando API" : "Aguardando acesso");
-  setIntegrationPill("actions-api-state", connectionMode === "connected"
-    ? "Rota preparada"
-    : connectionMode === "error" && hasActions
-      ? "Falha na conexão"
-      : hasActions
-        ? "Aguardando API"
-        : "Aguardando acesso");
-  setIntegrationPill("contacts-api-state", contactsLoaded ? "Conectado" : hasContacts ? "Aguardando API" : "Aguardando acesso");
-  setIntegrationPill("settings-connection-state", contactsLoaded ? "Conectado" : hasContacts ? "Aguardando API" : "Aguardando acesso");
+  setIntegrationPill("orders-api-state", !hasAccess
+    ? "Aguardando acesso"
+    : connectionMode === "connected"
+      ? "Conectado"
+      : connectionMode === "error" && hasOrders
+        ? "Falha"
+        : hasOrders
+          ? "Aguardando API"
+          : "Aguardando acesso");
+  setIntegrationPill("actions-api-state", !hasAccess
+    ? "Aguardando acesso"
+    : connectionMode === "connected"
+      ? "Rota preparada"
+      : connectionMode === "error" && hasActions
+        ? "Falha na conexão"
+        : hasActions
+          ? "Aguardando API"
+          : "Aguardando acesso");
+  setIntegrationPill("contacts-api-state", !hasAccess ? "Aguardando acesso" : contactsLoaded ? "Conectado" : hasContacts ? "Aguardando API" : "Aguardando acesso");
+  setIntegrationPill("settings-connection-state", !hasAccess ? "Aguardando acesso" : contactsLoaded ? "Conectado" : hasContacts ? "Aguardando API" : "Aguardando acesso");
   document.querySelector(".settings-save-button").disabled = false;
   const canCreateOrders = hasAccess && Boolean(config.createOrderEndpoint) && connectionMode === "connected" && !usingDemoData;
   document.getElementById("new-order-button").disabled = !canCreateOrders;
@@ -838,12 +853,16 @@ document.getElementById("view-all-button").addEventListener("click", () => {
   dateFilter.value = "all";
   selectView("orders");
 });
-document.getElementById("clear-filters").addEventListener("click", () => {
+function clearOrderFilters() {
   searchInput.value = "";
   statusFilter.value = "all";
   dateFilter.value = "all";
   renderRows();
   renderAgenda();
+}
+document.getElementById("clear-filters").addEventListener("click", clearOrderFilters);
+document.getElementById("orders-section").addEventListener("click", event => {
+  if (event.target.closest("#clear-board-filters")) clearOrderFilters();
 });
 document.getElementById("settings-form").addEventListener("submit", saveSettings);
 document.getElementById("orders-clear-button").addEventListener("click", clearAllOrders);

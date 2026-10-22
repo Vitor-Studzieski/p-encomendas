@@ -7,6 +7,8 @@ const publicRoot = resolve(root, "public");
 const publicFiles = [
   ["pedido.html", "pedido.html"],
   ["avaliacao.html", "avaliacao.html"],
+  ["setor.html", "setor.html"],
+  ["contas-setores.html", "contas-setores.html"],
   ["src/shared/styles.css", "src/shared/styles.css"],
   ["src/forms/forms.css", "src/forms/forms.css"],
   ["src/orders/order-form.js", "src/orders/order-form.js"],
@@ -14,7 +16,11 @@ const publicFiles = [
   ["src/shared/order-items.js", "src/shared/order-items.js"],
   ["src/shared/idempotency.js", "src/shared/idempotency.js"],
   ["src/dashboard/domain/orders.js", "src/dashboard/domain/orders.js"],
-  ["src/surveys/satisfaction-form.js", "src/surveys/satisfaction-form.js"]
+  ["src/surveys/satisfaction-form.js", "src/surveys/satisfaction-form.js"],
+  ["src/sector/portal.css", "src/sector/portal.css"],
+  ["src/sector/portal.js", "src/sector/portal.js"],
+  ["src/sector/accounts.css", "src/sector/accounts.css"],
+  ["src/sector/accounts.js", "src/sector/accounts.js"]
 ];
 
 for (const [source, destination] of publicFiles) {

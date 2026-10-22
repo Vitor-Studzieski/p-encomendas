@@ -1,0 +1,198 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1320" viewBox="0 0 1800 1320" role="img" aria-labelledby="title desc">
+  <title id="title">Portal independente de encomendas por setor</title>
+  <desc id="desc">Fluxo do portal independente: pedidos próprios, contas por setor, produção e análise da Fiscal, sem sincronização com a dashboard atual ou com o WhatsApp.</desc>
+  <defs>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#163451" flood-opacity="0.08"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1D5D9A"/>
+    </marker>
+    <marker id="arrow-yellow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#D8A900"/>
+    </marker>
+    <style>
+      text { font-family: Inter, Segoe UI, Arial, sans-serif; fill: #173452; }
+      .title { font-size: 34px; font-weight: 750; letter-spacing: .3px; }
+      .subtitle { font-size: 17px; fill: #D8E6F3; }
+      .section { font-size: 20px; font-weight: 750; letter-spacing: .7px; }
+      .section-note { font-size: 14px; fill: #6D8093; }
+      .card-title { font-size: 18px; font-weight: 700; }
+      .body { font-size: 15px; fill: #526B83; }
+      .small { font-size: 13px; fill: #6D8093; }
+      .tag { font-size: 12px; font-weight: 750; letter-spacing: .8px; }
+      .white { fill: #fff; }
+      .navy { fill: #12385C; }
+      .blue { fill: #1D5D9A; }
+      .yellow { fill: #D8A900; }
+      .line { stroke: #1D5D9A; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+      .line-yellow { stroke: #D8A900; stroke-width: 3; fill: none; marker-end: url(#arrow-yellow); }
+    </style>
+  </defs>
+
+  <rect width="1800" height="1320" fill="#F2F5F8"/>
+  <rect width="1800" height="118" fill="#12385C"/>
+  <rect x="54" y="29" width="60" height="60" rx="13" fill="#F2C230"/>
+  <text x="84" y="69" text-anchor="middle" font-size="24" font-weight="800" fill="#12385C">E</text>
+  <text x="138" y="57" class="title white">ENCOMENDAS · PORTAL INDEPENDENTE</text>
+  <text x="140" y="84" class="subtitle">Pedidos próprios · sem conexão com dashboard ou WhatsApp</text>
+  <rect x="1430" y="39" width="316" height="38" rx="19" fill="#1D527F"/>
+  <circle cx="1454" cy="58" r="6" fill="#F2C230"/>
+  <text x="1470" y="63" class="tag white">MÓDULO SEPARADO · DADOS PRÓPRIOS</text>
+
+  <text x="60" y="163" class="section">1. DO PEDIDO À FILA CERTA</text>
+  <text x="60" y="187" class="section-note">O sistema organiza o trabalho e avisa cada equipe dentro do próprio software.</text>
+
+  <!-- Top-level workflow cards -->
+  <g filter="url(#shadow)">
+    <rect x="60" y="211" width="365" height="174" rx="12" fill="#FFFFFF" stroke="#D7E0E8"/>
+    <rect x="60" y="211" width="7" height="174" rx="3" fill="#D8A900"/>
+    <circle cx="96" cy="249" r="18" fill="#FFF4C9"/><text x="96" y="255" text-anchor="middle" class="tag yellow">01</text>
+    <text x="126" y="255" class="card-title">Pedido registrado</text>
+    <text x="86" y="295" class="body"><tspan x="86" dy="0">A gerência registra cliente, itens,</tspan><tspan x="86" dy="23">retirada e dados do pedido.</tspan></text>
+    <rect x="86" y="345" width="214" height="24" rx="12" fill="#EEF3F8"/><text x="98" y="362" class="small">Cadastro próprio do portal</text>
+
+    <rect x="505" y="211" width="365" height="174" rx="12" fill="#FFFFFF" stroke="#D7E0E8"/>
+    <rect x="505" y="211" width="7" height="174" rx="3" fill="#1D5D9A"/>
+    <circle cx="541" cy="249" r="18" fill="#E6F1FA"/><text x="541" y="255" text-anchor="middle" class="tag blue">02</text>
+    <text x="571" y="255" class="card-title">Sistema separa por setor</text>
+    <text x="531" y="295" class="body"><tspan x="531" dy="0">Cada item é encaminhado à equipe</tspan><tspan x="531" dy="23">responsável pelo produto.</tspan></text>
+    <rect x="531" y="345" width="288" height="24" rx="12" fill="#EAF3FA"/><text x="543" y="362" class="small">Sem item do setor = sem tarefa para ele</text>
+
+    <rect x="950" y="211" width="365" height="174" rx="12" fill="#FFFFFF" stroke="#D7E0E8"/>
+    <rect x="950" y="211" width="7" height="174" rx="3" fill="#1D5D9A"/>
+    <circle cx="986" cy="249" r="18" fill="#E6F1FA"/><text x="986" y="255" text-anchor="middle" class="tag blue">03</text>
+    <text x="1016" y="255" class="card-title">Fila interna do setor</text>
+    <text x="976" y="295" class="body"><tspan x="976" dy="0">A equipe entra com sua conta e vê</tspan><tspan x="976" dy="23">somente as tarefas do próprio setor.</tspan></text>
+    <rect x="976" y="345" width="265" height="24" rx="12" fill="#EAF3FA"/><text x="988" y="362" class="small">Confirmação e produção na fila do portal</text>
+
+    <rect x="1395" y="211" width="345" height="174" rx="12" fill="#FFFFFF" stroke="#D7E0E8"/>
+    <rect x="1395" y="211" width="7" height="174" rx="3" fill="#D8A900"/>
+    <circle cx="1431" cy="249" r="18" fill="#FFF4C9"/><text x="1431" y="255" text-anchor="middle" class="tag yellow">04</text>
+    <text x="1461" y="255" class="card-title">Pedido acompanhado</text>
+    <text x="1421" y="295" class="body"><tspan x="1421" dy="0">O painel consolida as etapas de</tspan><tspan x="1421" dy="23">todos os setores envolvidos.</tspan></text>
+    <rect x="1421" y="345" width="275" height="24" rx="12" fill="#FFF7DA"/><text x="1433" y="362" class="small">Sem envio ou resposta por WhatsApp</text>
+  </g>
+  <path d="M 430 298 H 490" class="line"/><path d="M 875 298 H 935" class="line"/><path d="M 1320 298 H 1380" class="line"/>
+
+  <!-- Sector accounts -->
+  <text x="60" y="439" class="section">2. UMA CONTA PARA CADA EQUIPE</text>
+  <text x="60" y="463" class="section-note">Permissões por função: cada equipe atualiza os próprios itens e não altera a fila de outro setor.</text>
+  <g filter="url(#shadow)">
+    <rect x="60" y="485" width="320" height="143" rx="10" fill="#FFFFFF" stroke="#E1C75C" stroke-width="2"/>
+    <rect x="60" y="485" width="320" height="8" rx="4" fill="#D8A900"/>
+    <text x="84" y="529" class="card-title">Padaria</text>
+    <text x="84" y="557" class="body">Conta e fila exclusivas</text>
+    <text x="84" y="590" class="small">Setor disponível para a equipe</text>
+    <circle cx="344" cy="526" r="15" fill="#FFF4C9"/><path d="M337 526h14M344 519v14" stroke="#A47C00" stroke-width="2.5"/>
+
+    <rect x="400" y="485" width="320" height="143" rx="10" fill="#FFFFFF" stroke="#D7E0E8"/>
+    <rect x="400" y="485" width="320" height="8" rx="4" fill="#1D5D9A"/>
+    <text x="424" y="529" class="card-title">Confeitaria</text>
+    <text x="424" y="557" class="body">Conta e fila exclusivas</text>
+    <text x="424" y="590" class="small">Acessa somente itens atribuídos</text>
+    <circle cx="684" cy="526" r="15" fill="#E6F1FA"/><path d="M677 526h14M684 519v14" stroke="#1D5D9A" stroke-width="2.5"/>
+
+    <rect x="740" y="485" width="320" height="143" rx="10" fill="#FFFFFF" stroke="#D7E0E8"/>
+    <rect x="740" y="485" width="320" height="8" rx="4" fill="#1D5D9A"/>
+    <text x="764" y="529" class="card-title">Açougue</text>
+    <text x="764" y="557" class="body">Conta e fila exclusivas</text>
+    <text x="764" y="590" class="small">Acessa somente itens atribuídos</text>
+    <circle cx="1024" cy="526" r="15" fill="#E6F1FA"/><path d="M1017 526h14M1024 519v14" stroke="#1D5D9A" stroke-width="2.5"/>
+
+    <rect x="1080" y="485" width="320" height="143" rx="10" fill="#FFFFFF" stroke="#D7E0E8"/>
+    <rect x="1080" y="485" width="320" height="8" rx="4" fill="#1D5D9A"/>
+    <text x="1104" y="529" class="card-title">Frios</text>
+    <text x="1104" y="557" class="body">Conta e fila exclusivas</text>
+    <text x="1104" y="590" class="small">Acessa somente itens atribuídos</text>
+    <circle cx="1364" cy="526" r="15" fill="#E6F1FA"/><path d="M1357 526h14M1364 519v14" stroke="#1D5D9A" stroke-width="2.5"/>
+
+    <rect x="1420" y="485" width="320" height="143" rx="10" fill="#FFFFFF" stroke="#D7E0E8"/>
+    <rect x="1420" y="485" width="320" height="8" rx="4" fill="#1D5D9A"/>
+    <text x="1444" y="529" class="card-title">Rotisseria</text>
+    <text x="1444" y="557" class="body">Conta e fila exclusivas</text>
+    <text x="1444" y="590" class="small">Acessa somente itens atribuídos</text>
+    <circle cx="1704" cy="526" r="15" fill="#E6F1FA"/><path d="M1697 526h14M1704 519v14" stroke="#1D5D9A" stroke-width="2.5"/>
+  </g>
+  <rect x="60" y="644" width="1680" height="32" rx="8" fill="#E8EEF4"/>
+  <text x="900" y="665" text-anchor="middle" class="small">Usuários individuais · perfil com permissões · registro de quem confirmou e atualizou cada etapa</text>
+
+  <!-- Main order stages -->
+  <text x="60" y="727" class="section">3. ETAPAS ATUALIZADAS PELO PRÓPRIO SETOR</text>
+  <text x="60" y="751" class="section-note">O setor confirma, inicia e conclui a produção diretamente na sua tela.</text>
+  <g filter="url(#shadow)">
+    <rect x="60" y="775" width="260" height="116" rx="10" fill="#FFFFFF" stroke="#E1C75C" stroke-width="2"/>
+    <rect x="60" y="775" width="8" height="116" rx="4" fill="#D8A900"/>
+    <text x="88" y="814" class="card-title">Aguardando</text><text x="88" y="838" class="card-title">confirmação</text>
+    <text x="88" y="867" class="small">Fila do setor</text>
+
+    <rect x="365" y="775" width="260" height="116" rx="10" fill="#FFFFFF" stroke="#D7E0E8"/>
+    <rect x="365" y="775" width="8" height="116" rx="4" fill="#1D5D9A"/>
+    <text x="393" y="814" class="card-title">Aguardando</text><text x="393" y="838" class="card-title">produção</text>
+    <text x="393" y="867" class="small">Setor confirmou</text>
+
+    <rect x="670" y="775" width="260" height="116" rx="10" fill="#FFFFFF" stroke="#D7E0E8"/>
+    <rect x="670" y="775" width="8" height="116" rx="4" fill="#1D5D9A"/>
+    <text x="698" y="814" class="card-title">Em produção</text>
+    <text x="698" y="847" class="body">Setor marca o início</text>
+    <text x="698" y="872" class="small">Equipe atualiza no painel</text>
+
+    <rect x="975" y="775" width="260" height="116" rx="10" fill="#FFFFFF" stroke="#D7E0E8"/>
+    <rect x="975" y="775" width="8" height="116" rx="4" fill="#1D5D9A"/>
+    <text x="1003" y="814" class="card-title">Pronto para</text><text x="1003" y="838" class="card-title">retirada</text>
+    <text x="1003" y="867" class="small">Setor marca conclusão</text>
+
+    <rect x="1280" y="775" width="260" height="116" rx="10" fill="#FFFFFF" stroke="#D7E0E8"/>
+    <rect x="1280" y="775" width="8" height="116" rx="4" fill="#1D5D9A"/>
+    <text x="1308" y="814" class="card-title">Acompanhamento</text>
+    <text x="1308" y="847" class="body">Gerência consulta o estado</text>
+    <text x="1308" y="872" class="small">Lista própria do portal</text>
+  </g>
+  <path d="M 325 833 H 355" class="line"/><path d="M 630 833 H 660" class="line"/><path d="M 935 833 H 965" class="line"/><path d="M 1240 833 H 1270" class="line"/>
+  <rect x="1570" y="775" width="170" height="116" rx="10" fill="#12385C"/>
+  <text x="1655" y="813" text-anchor="middle" class="tag white">VISÃO DA GERÊNCIA</text>
+  <text x="1655" y="840" text-anchor="middle" font-size="14" font-weight="650" fill="#FFFFFF">Consulta as últimas</text>
+  <text x="1655" y="862" text-anchor="middle" font-size="14" font-weight="650" fill="#FFFFFF">encomendas do portal</text>
+  <path d="M 1548 833 H 1560" class="line"/>
+
+  <!-- Exception path -->
+  <text x="60" y="950" class="section">4. QUANDO O SETOR NÃO CONSEGUE PRODUZIR</text>
+  <text x="60" y="974" class="section-note">A recusa inicia uma análise interna. O cliente só recebe a decisão depois da avaliação final.</text>
+  <g filter="url(#shadow)">
+    <rect x="60" y="998" width="350" height="120" rx="10" fill="#FFFFFF" stroke="#D7E0E8"/>
+    <circle cx="94" cy="1033" r="17" fill="#FFF4C9"/><text x="94" y="1038" text-anchor="middle" class="tag yellow">A</text>
+    <text x="123" y="1038" class="card-title">Setor pede análise</text>
+    <text x="86" y="1075" class="body"><tspan x="86">Pedido fica pendente; a equipe</tspan><tspan x="86" dy="21">não encerra nem avisa o cliente.</tspan></text>
+
+    <rect x="475" y="998" width="350" height="120" rx="10" fill="#FFFFFF" stroke="#D7E0E8"/>
+    <circle cx="509" cy="1033" r="17" fill="#E6F1FA"/><text x="509" y="1038" text-anchor="middle" class="tag blue">B</text>
+    <text x="538" y="1038" class="card-title">Fiscal investiga</text>
+    <text x="501" y="1075" class="body"><tspan x="501">Analisa alternativas e registra</tspan><tspan x="501" dy="21">a decisão na própria conta.</tspan></text>
+
+    <rect x="890" y="998" width="350" height="120" rx="10" fill="#FFFFFF" stroke="#D7E0E8"/>
+    <circle cx="924" cy="1033" r="17" fill="#E6F1FA"/><text x="924" y="1038" text-anchor="middle" class="tag blue">C</text>
+    <text x="953" y="1038" class="card-title">Decisão registrada</text>
+    <text x="916" y="1075" class="body"><tspan x="916">Pode produzir: retorna à fila.</tspan><tspan x="916" dy="21">Não pode: encerra como indisponível.</tspan></text>
+
+    <rect x="1305" y="998" width="435" height="120" rx="10" fill="#FFF9E3" stroke="#E1C75C"/>
+    <circle cx="1339" cy="1033" r="17" fill="#F2C230"/><text x="1339" y="1038" text-anchor="middle" class="tag navy">D</text>
+    <text x="1368" y="1038" class="card-title">Fiscal contata o cliente</text>
+    <text x="1331" y="1075" class="body"><tspan x="1331">Após a decisão final, a Fiscal informa</tspan><tspan x="1331" dy="21">o cliente pelos canais da loja.</tspan></text>
+  </g>
+  <path d="M 415 1058 H 465" class="line-yellow"/><path d="M 830 1058 H 880" class="line"/><path d="M 1245 1058 H 1295" class="line"/>
+
+  <rect x="60" y="1160" width="1680" height="94" rx="12" fill="#12385C"/>
+  <text x="88" y="1197" class="tag" fill="#F2C230">REGRAS-CHAVE</text>
+  <text x="88" y="1227" font-size="15" font-weight="600" fill="#FFFFFF">Acesso individual</text>
+  <text x="275" y="1227" font-size="15" fill="#D8E6F3">·</text>
+  <text x="297" y="1227" font-size="15" font-weight="600" fill="#FFFFFF">Visibilidade por setor</text>
+  <text x="515" y="1227" font-size="15" fill="#D8E6F3">·</text>
+  <text x="537" y="1227" font-size="15" font-weight="600" fill="#FFFFFF">Encaminhar só quando houver item daquele setor</text>
+  <text x="1008" y="1227" font-size="15" fill="#D8E6F3">·</text>
+  <text x="1030" y="1227" font-size="15" font-weight="600" fill="#FFFFFF">Dados próprios do portal</text>
+  <text x="1213" y="1227" font-size="15" fill="#D8E6F3">·</text>
+  <text x="1235" y="1227" font-size="15" font-weight="600" fill="#FFFFFF">Sem conexão com o sistema atual</text>
+
+  <text x="60" y="1290" class="small">Portal independente: dados e contas próprios, sem leitura ou sincronização com a dashboard atual.</text>
+  <text x="1740" y="1290" text-anchor="end" class="small">ENCOMENDAS · PORTAL POR SETOR</text>
+</svg>

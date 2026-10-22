@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#12385c">
+  <title>Portal do setor · Encomendas</title>
+  <link rel="stylesheet" href="/src/sector/portal.css">
+  <script type="module" src="/src/sector/portal.js"></script>
+</head>
+<body>
+  <header class="portal-header">
+    <a class="portal-brand" href="/setor.html" aria-label="Encomendas · Portal de setores">
+      <span class="brand-mark">E</span>
+      <span><strong>Encomendas</strong><small>PORTAL DA EQUIPE</small></span>
+    </a>
+    <div class="header-status"><span class="status-dot"></span><span id="header-status-text">Acesso do setor</span></div>
+  </header>
+
+  <main class="portal-main">
+    <section class="portal-intro">
+      <p class="eyebrow">OPERAÇÃO INTERNA</p>
+      <h1 id="portal-title">Portal do setor</h1>
+      <p id="portal-subtitle">Entre para acessar a fila da sua equipe.</p>
+    </section>
+
+    <div class="portal-banner" id="portal-banner" role="status" hidden></div>
+
+    <section class="login-panel panel" id="login-panel">
+      <div class="panel-heading"><div><h2>Acessar fila</h2><p>Use a conta individual fornecida pela gerência.</p></div></div>
+      <form id="login-form" class="login-form">
+        <label>E-mail<input id="login-email" type="email" autocomplete="username" required maxlength="254"></label>
+        <label>Senha<input id="login-password" type="password" autocomplete="current-password" required maxlength="256"></label>
+        <button class="button button-primary" type="submit" id="login-button">Entrar</button>
+        <p class="form-message" id="login-message" role="status" aria-live="polite"></p>
+      </form>
+      <p class="login-help">Sem credencial? Peça à gerência para criar ou liberar uma conta para seu setor.</p>
+    </section>
+
+    <section class="login-panel panel" id="password-panel" hidden>
+      <div class="panel-heading"><div><h2>Defina sua senha</h2><p>Por segurança, troque a senha inicial antes de acessar a fila.</p></div></div>
+      <form id="password-form" class="login-form">
+        <label>Nova senha<input id="new-password" type="password" autocomplete="new-password" required minlength="12" maxlength="128"></label>
+        <label>Confirme a nova senha<input id="confirm-password" type="password" autocomplete="new-password" required minlength="12" maxlength="128"></label>
+        <button class="button button-primary" type="submit" id="password-button">Salvar nova senha</button>
+        <p class="form-message" id="password-message" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section id="work-panel" hidden>
+      <div class="work-toolbar">
+        <div><p class="eyebrow">FILA DE TRABALHO</p><h2 id="work-heading">Pedidos</h2><p id="work-caption"></p></div>
+        <div class="toolbar-actions"><button class="button button-secondary" id="refresh-button" type="button">Atualizar fila</button><button class="button button-quiet" id="logout-button" type="button">Sair</button></div>
+      </div>
+      <div class="work-summary" id="work-summary"></div>
+      <div class="work-list" id="work-list" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <footer class="portal-footer"><span>Encomendas · Portal independente de setores</span><span><a href="/contas-setores.html">Gerência do portal</a></span></footer>
+</body>
+</html>

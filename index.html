@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#17372d">
+  <meta name="theme-color" content="#174a7e">
   <meta name="description" content="Painel de operação para pedidos, produção e atendimento da padaria.">
   <title>Encomendas · Operação</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -82,7 +82,7 @@
           <div>
             <div class="eyebrow"><span class="eyebrow-mark" aria-hidden="true"></span>PAINEL DA OPERAÇÃO</div>
             <h1 id="page-title">Visão geral</h1>
-            <p id="page-subtitle">Acompanhe encomendas, produção e retirada.</p>
+            <p id="page-subtitle">Pedidos organizados por etapa, da confirmação à retirada.</p>
           </div>
           <div class="demo-badge" id="demo-badge"><span class="demo-dot" aria-hidden="true"></span>Acesso necessário</div>
         </section>
@@ -116,7 +116,7 @@
 
         <section class="content-card orders-card" id="orders-section">
           <div class="section-header">
-            <div><span class="section-kicker">ACOMPANHAMENTO</span><h2 id="list-title">Pedidos recentes</h2><p id="list-caption">Veja os itens, o horário de retirada e o andamento de cada encomenda.</p></div>
+            <div><span class="section-kicker">ACOMPANHAMENTO</span><h2 id="list-title">Quadro de encomendas</h2><p id="list-caption">Acompanhe cada encomenda conforme avança pela operação.</p></div>
             <button class="text-button" id="view-all-button" type="button">Ver todos <span aria-hidden="true">→</span></button>
           </div>
           <div class="toolbar">
@@ -124,7 +124,8 @@
             <label class="filter-select"><span class="sr-only">Filtrar por status</span><select id="status-filter"><option value="all">Todos os status</option><option value="awaiting_confirmation">Aguardando confirmação</option><option value="confirmed">Aguardando produção</option><option value="preparing">Em fabricação</option><option value="needs_attention">Precisa de atenção</option><option value="ready">Pronto para retirada</option><option value="rejected">Recusado</option><option value="cancelled">Cancelado</option><option value="picked_up">Retirado (histórico)</option></select></label>
             <label class="filter-select date-filter"><span class="sr-only">Filtrar data</span><select id="date-filter"><option value="today">Retirada hoje</option><option value="all">Qualquer data</option></select></label>
           </div>
-          <div class="table-scroll">
+          <div class="kanban-board" id="overview-board" aria-label="Encomendas por etapa" hidden></div>
+          <div class="table-scroll" id="orders-table-view">
             <table>
               <thead><tr><th>ENCOMENDA</th><th>CLIENTE</th><th>ITENS</th><th>RETIRADA</th><th>ETAPA</th><th><span class="sr-only">Ações</span></th></tr></thead>
               <tbody id="orders-table"></tbody>

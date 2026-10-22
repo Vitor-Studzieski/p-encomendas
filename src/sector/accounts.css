@@ -1,0 +1,55 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap");
+@import url("/src/sector/portal.css");
+
+body { background: #f2f5f8; }
+.accounts-main { width: min(1040px, calc(100% - 40px)); margin: 38px auto 60px; flex: 1; }
+.page-heading { margin-bottom: 24px; }
+.page-heading h1 { margin-bottom: 8px; }
+.page-heading > p:last-child { max-width: 650px; line-height: 1.5; }
+.header-link { font-size: 13px; }
+.access-required { max-width: 620px; padding: 22px; border-left: 4px solid var(--portal-yellow); }
+.access-required h2 { margin-bottom: 7px; font: 700 19px Manrope, sans-serif; }
+.access-required p { margin: 0; color: var(--portal-muted); font-size: 13px; line-height: 1.5; }
+.access-required a { color: var(--portal-blue); font-weight: 700; }
+.create-panel, .list-panel { padding: 22px; margin-bottom: 16px; }
+.section-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 18px; }
+.section-heading h2 { margin-bottom: 4px; font: 700 19px Manrope, sans-serif; }
+.section-heading p { margin-bottom: 0; color: var(--portal-muted); font-size: 12px; }
+.account-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.account-form label small { color: var(--portal-muted); font-size: 11px; font-weight: 400; line-height: 1.45; }
+.password-field { grid-column: 1 / -1; }
+.form-actions { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.form-actions p { margin: 0; color: #2f6848; font-size: 12px; }
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; text-align: left; }
+th { padding: 10px; color: #71869a; border-bottom: 1px solid var(--portal-border); font-size: 10px; letter-spacing: .09em; text-transform: uppercase; }
+td { padding: 12px 10px; border-bottom: 1px solid #edf0f3; color: #314a62; font-size: 12px; }
+td strong, td small { display: block; }
+td small { margin-top: 4px; color: var(--portal-muted); font-size: 11px; }
+.account-state { display: inline-flex; padding: 4px 8px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+.account-state.is-active { background: #eaf5ed; color: #35734b; }
+.account-state.is-paused { background: #f1f3f5; color: #657b90; }
+.account-toggle { min-height: 32px; padding-inline: 10px; font-size: 11px; }
+.empty-state { padding: 24px 10px; color: var(--portal-muted); font-size: 13px; text-align: center; }
+.accounts-footer { justify-content: center; text-align: center; }
+.manager-toolbar { display: flex; justify-content: space-between; align-items: center; margin: 0 0 14px; color: var(--portal-muted); font-size: 12px; }
+.login-manager-form { margin-top: 16px; }
+.order-items-editor { grid-column: 1 / -1; padding: 16px; border: 1px solid var(--portal-border); border-radius: 12px; background: #f8fafc; }
+.order-items-editor .section-heading { margin-bottom: 12px; }
+.order-items-editor h3 { margin: 0 0 4px; font: 700 15px Manrope, sans-serif; }
+.order-item-row { display: grid; grid-template-columns: minmax(180px, 2fr) minmax(110px, .7fr) minmax(130px, 1fr) minmax(150px, 1fr) auto; gap: 10px; align-items: end; padding: 12px 0; border-top: 1px solid var(--portal-border); }
+.order-item-row label { font-size: 11px; }
+.order-item-row .remove-item { min-height: 40px; }
+.access-required .form-actions { margin-top: 2px; }
+
+@media (max-width: 700px) {
+  .accounts-main { width: min(100% - 28px, 600px); margin-top: 28px; }
+  .account-form { grid-template-columns: 1fr; }
+  .password-field, .form-actions { grid-column: auto; }
+  .form-actions { align-items: flex-start; flex-direction: column; }
+  .create-panel, .list-panel { padding: 17px; }
+  .section-heading { align-items: flex-start; }
+  .order-item-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .order-item-row label:first-child { grid-column: 1 / -1; }
+  .order-item-row .remove-item { grid-column: 1 / -1; }
+}
