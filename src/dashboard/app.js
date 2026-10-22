@@ -459,11 +459,46 @@ function setIntegrationStates() {
   const canCreateOrders = hasAccess && Boolean(config.createOrderEndpoint) && connectionMode === "connected" && !usingDemoData;
   document.getElementById("new-order-button").disabled = !canCreateOrders;
   document.querySelector("#new-order-form button[type='submit']").disabled = !canCreateOrders || isSubmittingNewOrder;
+  document.getElementById("orders-clear-button").disabled = !hasAccess || !config.ordersClearEndpoint || connectionMode !== "connected" || usingDemoData || isClearingOrders;
   const accessButton = document.getElementById("api-access-button");
   accessButton.textContent = hasAccess ? "Sair" : "Acessar";
   accessButton.setAttribute("aria-label", hasAccess ? "Sair da operação" : "Entrar na operação");
   accessButton.setAttribute("aria-pressed", String(hasAccess));
   accessButton.title = hasAccess ? "Encerrar sessão segura" : "Entrar na operação";
+}
+
+let isClearingOrders = false;
+
+async function clearAllOrders() {
+  if (isClearingOrders || !dashboardAuthenticated || connectionMode !== "connected" || usingDemoData) return;
+  const confirmed = window.confirm("Apagar permanentemente TODAS as encomendas e o histórico associado, incluindo pedidos retirados, recusados e cancelados? Os códigos sequenciais serão preservados.");
+  if (!confirmed) return;
+
+  const button = document.getElementById("orders-clear-button");
+  const status = document.getElementById("orders-clear-status");
+  isClearingOrders = true;
+  button.disabled = true;
+  button.textContent = "Apagando pedidos…";
+  status.textContent = "Aguardando confirmação segura do banco…";
+  try {
+    const result = await requestJson(config.ordersClearEndpoint, {
+      method: "POST",
+      body: JSON.stringify({ confirm: true })
+    });
+    status.textContent = Number(result.deleted_orders) + " pedido(s) e histórico associado apagados.";
+    showToast(status.textContent, "success");
+    searchInput.value = "";
+    statusFilter.value = "all";
+    dateFilter.value = "all";
+    await refreshOrders();
+  } catch (error) {
+    status.textContent = error.message || "Não foi possível apagar os pedidos.";
+    showToast(status.textContent, "error");
+  } finally {
+    isClearingOrders = false;
+    button.textContent = "Apagar todos os pedidos";
+    setIntegrationStates();
+  }
 }
 
 function setIntegrationPill(id, label) {
@@ -811,6 +846,7 @@ document.getElementById("clear-filters").addEventListener("click", () => {
   renderAgenda();
 });
 document.getElementById("settings-form").addEventListener("submit", saveSettings);
+document.getElementById("orders-clear-button").addEventListener("click", clearAllOrders);
 document.getElementById("bakery-phone").addEventListener("input", saveSettingsDraftFromInputs);
 document.getElementById("fiscal-phone").addEventListener("input", saveSettingsDraftFromInputs);
 document.getElementById("customer-phone-setting").addEventListener("input", saveSettingsDraftFromInputs);

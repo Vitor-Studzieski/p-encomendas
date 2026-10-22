@@ -5,7 +5,7 @@ const { dispatchEvent, requestFiscalReview, sendEventNotification } = require(".
 const { enforceRateLimit, fail, json, methodNotAllowed, readBody, sameSecret } = require("../../../lib/http");
 const { normalizePhone } = require("../../../lib/phones");
 const { groupProductionItems, leadProductionRouteKey, productionRouteLabel } = require("../../../lib/production-routing");
-const { getOperationSettings, getOpenProductionOrders, getOrderByReference } = require("../../../lib/supabase");
+const { claimAutomationRun, getOperationSettings, getOpenProductionOrders, getOrderByReference, getProductionRefusalOrderIds, updateAutomationRun } = require("../../../lib/supabase");
 
 function requestSecret(request) {
   if (request.query?.secret) return Array.isArray(request.query.secret) ? request.query.secret[0] : request.query.secret;
@@ -46,6 +46,7 @@ function productionReplyLabel(order, routes) {
 
 function ordersAnswerableBySender(orders, routeKeys, decision) {
   return orders.filter(order => {
+    if (order.production_refused) return false;
     const pending = ["awaiting_confirmation", "pending"].includes(String(order.status || "").toLowerCase());
     const leadRouteKey = leadProductionRouteKey(order.items);
     if (decision === "CONFIRMAR") return pending && routeKeys.includes(leadRouteKey);
@@ -61,19 +62,6 @@ function productionOrderCodes(orders, limit = 5) {
   const shown = uniqueCodes.slice(0, limit);
   if (uniqueCodes.length > limit) shown.push("e mais " + (uniqueCodes.length - limit));
   return shown;
-}
-
-function multipleOrdersReply(orders, routes) {
-  const sectors = [...new Set(orders.map(order => productionReplyLabel(order, routes)).filter(Boolean))];
-  const sectorText = sectors.length ? sectors.join(", ") : "seu setor";
-  const codes = productionOrderCodes(orders);
-  const lines = [
-    "Há mais de um pedido aguardando resposta para " + sectorText + ".",
-    "Responda 1 <código> para confirmar ou 2 <código> para pedir análise da Fiscal.",
-    codes.length ? "Códigos dos pedidos: " + codes.join(", ") + "." : "Confira o código exibido no topo de cada mensagem do pedido."
-  ];
-  if (codes.length < orders.length) lines.push("Há pedido sem código disponível; peça à operação para verificar antes de responder.");
-  return lines.join("\n");
 }
 
 function unknownOrderReply(reference, matchingOrders, routes) {
@@ -93,6 +81,12 @@ function unknownOrderReply(reference, matchingOrders, routes) {
   return lines.join("\n");
 }
 
+async function settleNumericReply(key, status, details) {
+  if (!key) return;
+  try { await updateAutomationRun(key, status, details); }
+  catch (error) { console.error("Não foi possível finalizar a resposta numérica da produção: " + error.message); }
+}
+
 module.exports = async function zapiInbound(request, response) {
   if (request.method !== "POST") return methodNotAllowed(response, ["POST"]);
   const expected = process.env.ZAPI_WEBHOOK_SECRET;
@@ -101,6 +95,8 @@ module.exports = async function zapiInbound(request, response) {
   }
   if (!sameSecret(requestSecret(request), expected)) return json(response, 404, { message: "Não encontrado." });
 
+  let numericReplyClaimKey = "";
+  let numericReplyActionStarted = false;
   try {
     if (!await enforceRateLimit(request, response, "zapi-inbound", 300, 60)) return;
     const payload = await readBody(request, 512 * 1024);
@@ -131,6 +127,17 @@ module.exports = async function zapiInbound(request, response) {
       const decision = numericAnswer ? (numericAnswer[1] === "1" ? "CONFIRMAR" : "RECUSAR") : commandDecision;
       let orderRef = command ? command[2].trim() : String(numericAnswer?.[2] || "").trim();
       let selectedOrder = null;
+      if (numericAnswer && !orderRef) {
+        numericReplyClaimKey = "zapi-production-reply:" + messageId;
+        const claimed = await claimAutomationRun(numericReplyClaimKey, "production_whatsapp_reply", phone);
+        if (!claimed) {
+          const replyWarnings = await sendEventNotification(phone, "Essa resposta já está sendo processada ou já foi registrada. Não vou aplicá-la a outro pedido.", {
+            tag: "zapi-duplicate-reply-ack",
+            eventId: "zapi-duplicate-ack:" + messageId
+          });
+          return json(response, 200, { ok: true, processed: false, duplicate: true, warnings: replyWarnings });
+        }
+      }
       if (orderRef.length > 180) {
         const replyWarnings = await sendEventNotification(phone, "O código informado é longo demais. Confira e envie novamente o código exibido no topo da mensagem do pedido.", {
           tag: "zapi-production-help",
@@ -140,21 +147,26 @@ module.exports = async function zapiInbound(request, response) {
       }
       if (numericAnswer && !orderRef) {
         const openOrders = await getOpenProductionOrders();
-        const matchingOrders = ordersAnswerableBySender(openOrders, senderRouteKeys, decision);
-        if (matchingOrders.length !== 1) {
-          const reply = matchingOrders.length
-            ? multipleOrdersReply(matchingOrders, senderRoutes)
-            : decision === "CONFIRMAR"
-              ? "Não encontrei pedido aguardando confirmação inicial destinado a " + ([...new Set(senderRoutes.map(route => route.label))].join(", ") || "este setor") + ". Confira se o pedido continua aberto ou peça à operação para verificar o status."
-              : "Não encontrei um pedido ativo deste setor para vincular à resposta. Confira o código e o setor no topo da mensagem.";
+        const refusedIds = await getProductionRefusalOrderIds(openOrders.map(order => order.id));
+        const replyOrders = openOrders.map(order => ({ ...order, production_refused: refusedIds.has(String(order.id)) }));
+        const matchingOrders = ordersAnswerableBySender(replyOrders, senderRouteKeys, decision);
+        if (!matchingOrders.length) {
+          const sectorText = [...new Set(senderRoutes.map(route => route.label))].join(", ") || "seu setor";
+          const reply = decision === "CONFIRMAR"
+            ? "Não há pedido novo aguardando confirmação para " + sectorText + ". Se você respondeu 2 a um pedido há pouco, ele continua pendente enquanto a Fiscal analisa."
+            : "Não há outro pedido disponível para encaminhar à Fiscal por " + sectorText + ". Se você respondeu 2 há pouco, a Fiscal já recebeu o aviso e o pedido continua em análise.";
           const replyWarnings = await sendEventNotification(phone, reply, {
             tag: "zapi-production-help",
             eventId: "zapi-ack:" + messageId
           });
-          return json(response, 200, { ok: true, processed: false, reason: matchingOrders.length ? "ambiguous_sector_orders" : "no_matching_sector_order", warnings: replyWarnings });
+          await settleNumericReply(numericReplyClaimKey, "sent", { reason: "no_matching_sector_order" });
+          numericReplyClaimKey = "";
+          return json(response, 200, { ok: true, processed: false, reason: "no_matching_sector_order", warnings: replyWarnings });
         }
+        // Mensagens numéricas são processadas em fila, da mais recente para a mais antiga.
+        // O código do pedido é opcional e deixa de ser necessário quando há vários pedidos.
         selectedOrder = matchingOrders[0];
-        orderRef = String(selectedOrder.display_id || "").trim();
+        orderRef = String(selectedOrder.display_id || selectedOrder.external_order_id || selectedOrder.id || "").trim();
         if (!orderRef) throw Object.assign(new Error("O pedido aguardando confirmação não tem código interno."), { statusCode: 409 });
       } else {
         selectedOrder = await getOrderByReference(orderRef);
@@ -198,20 +210,25 @@ module.exports = async function zapiInbound(request, response) {
       }
       if (orderRef.length > 180) return json(response, 200, { ok: true, ignored: true });
       if (decision === "RECUSAR") {
+        numericReplyActionStarted = Boolean(numericReplyClaimKey);
         const review = await requestFiscalReview(orderRef, "", "zapi-review:" + messageId, selectedOrder ? productionReplyLabel(selectedOrder, senderRoutes) : [...new Set(senderRoutes.map(route => route.label))].join(", "), "production_whatsapp");
+        const selectedLabel = selectedOrder?.display_id || (selectedOrder?.customer_name ? "o pedido de " + selectedOrder.customer_name : "o pedido selecionado");
         const reply = review.warnings.length
-          ? "Recusa registrada. O pedido continua pendente, mas não consegui confirmar o aviso à Fiscal. Avise a operação diretamente."
-          : "Recusa registrada. A Fiscal foi avisada para investigar se é possível viabilizar a produção. O cliente só será avisado depois da análise final da Fiscal.";
+          ? "Recusa registrada para " + selectedLabel + ". O pedido continua pendente, mas não consegui confirmar o aviso à Fiscal. Avise a operação diretamente."
+          : "Recusa registrada para " + selectedLabel + ". A Fiscal foi avisada para investigar se é possível viabilizar a produção. O pedido continua pendente e o cliente só será avisado depois da análise final da Fiscal.";
         const replyWarnings = await sendEventNotification(phone, reply, {
           tag: "zapi-review-ack",
           eventId: "zapi-ack:" + messageId,
           orderRef
         });
         review.warnings.push(...replyWarnings);
+        await settleNumericReply(numericReplyClaimKey, "sent", { order_ref: orderRef, decision: "review_requested" });
+        numericReplyClaimKey = "";
         return json(response, 200, { ok: true, review_requested: true, warnings: review.warnings });
       }
       const confirmedRouteKey = leadProductionRouteKey(selectedOrder?.items);
       const confirmedRoute = groupProductionItems(selectedOrder?.items).get(confirmedRouteKey);
+      numericReplyActionStarted = Boolean(numericReplyClaimKey);
       const result = await dispatchEvent({
         event_id: "zapi-reply:" + messageId,
         event_type: "order.confirmed",
@@ -223,11 +240,15 @@ module.exports = async function zapiInbound(request, response) {
           occurred_at: new Date().toISOString()
         }
       });
-      const replyWarnings = await sendEventNotification(phone, "Confirmação registrada. O pedido foi marcado como confirmado no painel.", {
+      const selectedLabel = selectedOrder?.display_id || (selectedOrder?.customer_name ? "o pedido de " + selectedOrder.customer_name : "o pedido selecionado");
+      const selectedSector = productionRouteLabel(confirmedRoute);
+      const replyWarnings = await sendEventNotification(phone, "Confirmação registrada para " + selectedLabel + (selectedSector ? " (" + selectedSector + ")" : "") + ". O pedido foi marcado como confirmado no painel.", {
         tag: "zapi-confirmation-ack",
         eventId: "zapi-ack:" + messageId,
         orderRef
       });
+      await settleNumericReply(numericReplyClaimKey, "sent", { order_ref: orderRef, decision: "confirmed" });
+      numericReplyClaimKey = "";
       return json(response, 200, { ok: true, processed: true, warnings: [...result.warnings, ...replyWarnings] });
     }
 
@@ -263,13 +284,14 @@ module.exports = async function zapiInbound(request, response) {
 
     if (isProductionSender) {
       const help = "Quando seu setor receber a confirmação inicial do pedido, envie 1 para confirmar. Se não puder produzir seus itens, envie 2 para pedir análise da Fiscal. A recusa é encaminhada primeiro somente à Fiscal; o cliente só é avisado após a análise final.";
-      await sendEventNotification(phone, help + "\n\nSe houver mais de um pedido compatível, responda 1 ou 2 seguido do código que aparece no topo da mensagem escolhida.", {
+      await sendEventNotification(phone, help + "\n\nQuando houver vários pedidos, 1 ou 2 será aplicado ao pedido mais recente ainda aguardando resposta do seu setor. A confirmação ou o encaminhamento à Fiscal informará qual pedido foi selecionado.", {
         tag: "zapi-production-help",
         eventId: "zapi-message:" + messageId
       });
     }
     return json(response, 200, { ok: true, ignored: true });
   } catch (error) {
+    await settleNumericReply(numericReplyClaimKey, numericReplyActionStarted ? "sent" : "failed", { reason: error.message });
     return fail(response, error, "Não foi possível processar a mensagem recebida da Z-API.");
   }
 };
