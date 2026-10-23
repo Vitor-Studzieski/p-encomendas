@@ -130,7 +130,6 @@ function showOrder(id) {
   document.getElementById("dialog-content").insertAdjacentHTML("beforeend", productionMarkup);
   document.querySelectorAll("[data-order-action]").forEach(button => button.addEventListener("click", () => performOrderAction(order, button.dataset.orderAction, button)));
   document.querySelectorAll("[data-order-production-action]").forEach(button => button.addEventListener("click", () => performProductionAction(button)));
-  document.querySelectorAll("[data-order-ready-action]").forEach(button => button.addEventListener("click", () => performOrderReadyAction(button)));
   orderDialog.showModal();
 }
 
@@ -161,20 +160,14 @@ function renderOrderProductionActions(order, connected) {
           ? "planned"
           : "in_progress";
     const action = state === "in_progress" ? "mark_ready" : state === "completed" ? "" : "start_preparing";
-    const label = state === "in_progress" ? "Marcar pronto" : state === "completed" ? "Setor pronto" : state === "needs_attention" ? "Retomar produção" : "Iniciar setor";
+    const label = state === "in_progress" ? "Marcar setor pronto" : state === "completed" ? "Setor pronto" : state === "needs_attention" ? "Retomar produção" : "Iniciar setor";
     const taskIds = group.tasks.map(task => String(task.id || "")).filter(Boolean);
     const actionButton = action
       ? "<button type=\"button\" class=\"action-button\" data-order-production-action=\"" + action + "\" data-order-ref=\"" + escapeHtml(order.externalOrderId || order.id) + "\" data-task-ids=\"" + escapeHtml(JSON.stringify(taskIds)) + "\" data-department=\"" + escapeHtml(group.name) + "\" data-customer-phone=\"" + escapeHtml(order.phone || "") + "\"" + (connected ? "" : " disabled") + ">" + label + "</button>"
       : "<span class=\"production-sector-complete\">Setor pronto</span>";
     return "<div class=\"order-production-sector\"><span><strong>" + escapeHtml(group.name) + "</strong><small>" + (state === "in_progress" ? "Em produção" : state === "completed" ? "Concluído" : state === "needs_attention" ? "Precisa de atenção" : "Aguardando início") + "</small></span>" + actionButton + "</div>";
   }).join("");
-  const pendingTaskIds = Array.from(groups.values()).flatMap(group => group.tasks)
-    .filter(task => productionState(task) !== "completed")
-    .map(task => String(task.id || "")).filter(Boolean);
-  const markOrderReady = pendingTaskIds.length
-    ? "<div class=\"order-ready-action\"><p>Conclui os setores restantes e avisa o cliente e a fiscal.</p><button type=\"button\" class=\"primary-button\" data-order-ready-action data-order-ref=\"" + escapeHtml(order.externalOrderId || order.id) + "\" data-task-ids=\"" + escapeHtml(JSON.stringify(pendingTaskIds)) + "\" data-customer-phone=\"" + escapeHtml(order.phone || "") + "\"" + (connected ? "" : " disabled") + ">Marcar pedido pronto</button></div>"
-    : "";
-  return "<section class=\"order-production-actions\"><strong>Produção por setor</strong><div class=\"order-production-list\">" + sectors + "</div>" + markOrderReady + (!connected ? "<p class=\"connection-hint\">Ação disponível quando a API autenticada estiver conectada.</p>" : "") + "</section>";
+  return "<section class=\"order-production-actions\"><strong>Produção por setor</strong><div class=\"order-production-list\">" + sectors + "</div><p class=\"order-production-note\">Marcar pronto conclui somente o setor correspondente. Cliente e fiscal são avisados quando todos os setores terminarem.</p>" + (!connected ? "<p class=\"connection-hint\">Ação disponível quando a API autenticada estiver conectada.</p>" : "") + "</section>";
 }
 
 async function performOrderAction(order, action, button) {
@@ -490,60 +483,6 @@ async function performProductionAction(button) {
   } catch (error) {
     await refreshOrders();
     showToast(completedActions ? "Atualização parcial do setor. " + error.message : error.message || "Não foi possível atualizar o setor.", "error");
-  }
-}
-
-async function performOrderReadyAction(button) {
-  if (!window.confirm("Confirma que todos os setores restantes terminaram o pedido? O cliente e a fiscal serão avisados quando o pedido ficar pronto.")) return;
-  const orderRef = button.dataset.orderRef;
-  const taskIds = JSON.parse(button.dataset.taskIds || "[]");
-  const tasks = productionTasks.filter(task => taskIds.includes(String(task.id || "")) && productionState(task) !== "completed");
-  const groups = new Map();
-  for (const task of tasks) {
-    const sector = relation(task.sector);
-    const key = String(task.sector_id || sector.id || sector.slug || sector.name || task.sector_name || "sector");
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(task);
-  }
-  if (!groups.size) return;
-
-  button.disabled = true;
-  let completedActions = 0;
-  const warnings = [];
-  try {
-    for (const sectorTasks of groups.values()) {
-      const task = sectorTasks[0];
-      const sector = relation(task.sector);
-      const sectorName = sector.name || task.sector_name || "Setor";
-      const sectorId = task.sector_id || sector.id;
-      const states = sectorTasks.map(productionState);
-      const isStarted = states.includes("in_progress");
-      if (!isStarted) {
-        const started = await requestJson(config.orderActionEndpoint, { method: "POST", body: JSON.stringify({
-          event_id: crypto.randomUUID(), external_order_id: orderRef,
-          customer_phone: button.dataset.customerPhone,
-          action: "start_preparing", sector: sectorName, sector_id: sectorId,
-          notify_customer: false
-        }) });
-        completedActions++;
-        warnings.push(...(started?.warnings || []));
-      }
-      const ready = await requestJson(config.orderActionEndpoint, { method: "POST", body: JSON.stringify({
-        event_id: crypto.randomUUID(), external_order_id: orderRef,
-        customer_phone: button.dataset.customerPhone,
-        action: "mark_ready", sector: sectorName, sector_id: sectorId
-      }) });
-      completedActions++;
-      warnings.push(...(ready?.warnings || []));
-    }
-    orderDialog.close();
-    await refreshOrders();
-    showToast(warnings.length ? "Pedido atualizado. " + notificationWarningSummary(warnings) : "Pedido marcado como pronto.", warnings.length ? "error" : "success");
-  } catch (error) {
-    await refreshOrders();
-    showToast(completedActions ? "Atualização parcial do pedido. " + error.message : error.message || "Não foi possível marcar o pedido como pronto.", "error");
-  } finally {
-    if (button.isConnected) button.disabled = false;
   }
 }
 
