@@ -5,10 +5,17 @@ const root = process.cwd();
 const publicRoot = resolve(root, "public");
 
 const publicFiles = [
+  ["dashboard.html", "dashboard.html"],
   ["pedido.html", "pedido.html"],
   ["avaliacao.html", "avaliacao.html"],
   ["setor.html", "setor.html"],
   ["contas-setores.html", "contas-setores.html"],
+  ["src/dashboard/dashboard.css", "src/dashboard/dashboard.css"],
+  ["src/dashboard/config.js", "src/dashboard/config.js"],
+  ["src/dashboard/app.js", "src/dashboard/app.js"],
+  ["src/dashboard/domain/orders.js", "src/dashboard/domain/orders.js"],
+  ["src/dashboard/ui/agenda.js", "src/dashboard/ui/agenda.js"],
+  ["src/dashboard/ui/order-list.js", "src/dashboard/ui/order-list.js"],
   ["src/shared/styles.css", "src/shared/styles.css"],
   ["src/forms/forms.css", "src/forms/forms.css"],
   ["src/orders/order-form.js", "src/orders/order-form.js"],
