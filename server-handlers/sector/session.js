@@ -17,6 +17,7 @@ module.exports = async function sectorSession(request, response) {
         ...(context ? { account: publicMembership(context.account) } : {})
       });
     } catch (error) {
+      if (error?.statusCode === 503) return json(response, 503, { message: error.message });
       return fail(response, error, "Não foi possível consultar o acesso ao portal por setor.");
     }
   }
@@ -45,6 +46,7 @@ module.exports = async function sectorSession(request, response) {
     return json(response, 200, { authenticated: true, account: result.account });
   } catch (error) {
     if ([401, 403, 422].includes(error.statusCode)) return json(response, error.statusCode, { message: error.message });
+    if (error?.statusCode === 503) return json(response, 503, { message: error.message });
     return fail(response, error, "Não foi possível entrar no portal por setor.");
   }
 };

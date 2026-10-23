@@ -68,21 +68,21 @@ Antes do deploy, abra o **SQL Editor** do projeto Supabase usado pela aplicaçã
 
 As definições atuais das rotinas-base de negócio foram criadas diretamente no SQL Editor e ainda não estão todas guardadas como migrações neste repositório. Para tornar um projeto novo totalmente reproduzível, rode `supabase/sql-editor/export_business_routines.sql` e salve as definições retornadas numa migração-base versionada antes de depender de uma instalação do zero.
 
+### Tela inicial e ambientes
+
+`/` abre a tela para escolher o fluxo. A dashboard existente continua disponível em `/dashboard.html`; a equipe do portal independente entra por `/setor.html`, e a gerência acessa criação de contas e pedidos em `/contas-setores.html`. A gestão exige uma conta de gerente do portal; não há cadastro público de contas administrativas.
+
 ### Portal independente por setor (opcional)
 
 `/setor.html` é a entrada da equipe e `/contas-setores.html` é a área de gerência. O portal usa contas individuais do Supabase Auth, sessão `HttpOnly` própria e tabelas com prefixo `sector_portal_`. Pedidos, itens, setores, andamento e análises da Fiscal ficam nesses registros próprios. Nenhuma operação do portal consulta ou altera os pedidos, a agenda, as funções, as notificações ou o fluxo de WhatsApp da dashboard existente.
 
 Para instalar, execute somente `supabase/sql-editor/create_sector_portal.sql` no SQL Editor. A migração `20261022144509_create_standalone_sector_portal.sql` contém a mesma estrutura para instalações que usam a CLI; não aplique as duas formas em sequência. O script cria os cinco setores iniciais e funções transacionais próprias, protegidas por RLS e disponíveis apenas ao backend. Não remove nem reescreve dados existentes.
 
-Configure `SUPABASE_PUBLISHABLE_KEY` (ou `SUPABASE_ANON_KEY`) e `SECTOR_SESSION_SECRET` com pelo menos 32 caracteres. A conta inicial de gerência é criada em duas etapas: crie um usuário em Supabase → Authentication e depois associe-o à tabela exclusiva do portal, substituindo o e-mail no comando:
+Configure `SUPABASE_PUBLISHABLE_KEY` (também aceita `SUPABASE_PUBLIC_KEY` ou o nome legado `SUPABASE_ANON_KEY`), `SECTOR_SESSION_SECRET` e `SECTOR_MANAGER_BOOTSTRAP_TOKEN`. Gere valores aleatórios independentes de pelo menos 32 caracteres para os dois segredos. Mantenha o token de configuração privado: ele só serve para criar a primeira conta de gerência. Defina `SECTOR_PORTAL_ENABLED=true` somente depois de aplicar a migração do portal. No desenvolvimento local, use `.env.local`; na Vercel, configure as variáveis server-side no projeto.
 
-```sql
-insert into public.sector_portal_accounts (auth_user_id, email, display_name, role, sector_id, active)
-select id, lower(email), 'Gerência do portal', 'manager', null, true
-from auth.users
-where lower(email) = lower('gerencia@exemplo.com')
-on conflict (auth_user_id) do nothing;
-```
+Depois abra `/contas-setores.html`. Enquanto não existir uma conta de gerência, a página mostra **Criar o primeiro acesso da gerência**. Informe o token, nome, e-mail e escolha uma senha com pelo menos 12 caracteres. O sistema cria o usuário no Supabase Auth e o vincula à função de gerente do portal. Depois da criação, o formulário de primeiro acesso desaparece; a gerência pode cadastrar as contas da Fiscal e dos setores na mesma página. Não existe conta ou senha padrão.
+
+A primeira conta só pode ser criada depois que as tabelas do portal existirem e o portal estiver habilitado. Se a página disser que o acesso por contas está desativado, aplique primeiro `supabase/sql-editor/create_sector_portal.sql` no projeto Supabase configurado para este ambiente, configure as variáveis acima e reinicie ou publique o aplicativo. Essa migração cria apenas as tabelas `sector_portal_*` e não altera os dados da dashboard ou do WhatsApp.
 
 A gerência entra em `/contas-setores.html`, cria contas de setor/Fiscal e registra as encomendas independentes. O primeiro setor escolhido nos itens confirma a encomenda; os demais setores só recebem seus próprios itens dentro do portal. A equipe confirma, inicia e conclui a produção; pedidos com impedimentos vão à fila da Fiscal. A decisão final é registrada no portal e não envia mensagem automática ao cliente. `SECTOR_PORTAL_ENABLED=false` mantém o portal desligado; ativá-lo não muda o fluxo antigo da dashboard nem do WhatsApp.
 
@@ -107,6 +107,10 @@ Configure em **Vercel → Project → Settings → Environment Variables** para 
 | --- | --- |
 | `SUPABASE_URL` | URL do projeto Supabase |
 | `SUPABASE_SERVICE_ROLE_KEY` | Chave de serviço, somente server-side |
+| `SUPABASE_PUBLISHABLE_KEY` | Chave do Auth do portal; aceita também `SUPABASE_PUBLIC_KEY` ou `SUPABASE_ANON_KEY` |
+| `SECTOR_SESSION_SECRET` | Assinatura de sessões do portal; mínimo de 32 caracteres |
+| `SECTOR_MANAGER_BOOTSTRAP_TOKEN` | Token de uso único para criar a primeira conta de gerência; mínimo de 32 caracteres |
+| `SECTOR_PORTAL_ENABLED` | Ativa o portal após aplicar a migração; use `true` |
 | `DASHBOARD_ACCESS_TOKEN` | Credencial usada no primeiro acesso à dashboard; mínimo de 32 caracteres |
 | `APP_BASE_URL` | Domínio público da dashboard, sem `/` no fim |
 | `ZAPI_INSTANCE_ID` | ID da instância Z-API |
@@ -133,6 +137,7 @@ A fiscal recebe um endereço como `https://SEU-DOMINIO/pedido.html#acesso=ASSINA
 | --- | --- |
 | `GET /api/auth/session`, `POST /api/auth/session`, `DELETE /api/auth/session` | Verifica, inicia e encerra a sessão segura da dashboard |
 | `GET /api/sector/session`, `POST /api/sector/session`, `DELETE /api/sector/session` | Verifica, inicia e encerra uma sessão individual de setor |
+| `GET/POST /api/sector/bootstrap-manager` | Consulta e cria o primeiro acesso de gerência; o cadastro fecha depois que existe um gerente |
 | `GET /api/sector/workboard` | Lista a fila permitida para o setor ou para a Fiscal |
 | `POST /api/sector/actions` | Confirma, solicita análise e atualiza a produção nos pedidos próprios do portal |
 | `GET/POST /api/sector/orders` | Lista as encomendas próprias e permite à gerência criar uma encomenda no portal |

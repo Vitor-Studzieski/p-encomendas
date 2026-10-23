@@ -11,6 +11,9 @@ const orderForm = document.querySelector("#order-form");
 const itemRows = document.querySelector("#order-item-rows");
 const portalOrderRows = document.querySelector("#portal-orders-rows");
 const portalOrdersEmpty = document.querySelector("#portal-orders-empty");
+const bootstrapPanel = document.querySelector("#bootstrap-manager-panel");
+const bootstrapForm = document.querySelector("#bootstrap-manager-form");
+const bootstrapMessage = document.querySelector("#bootstrap-manager-message");
 
 let sectors = [];
 let requestBusy = false;
@@ -140,8 +143,22 @@ async function init() {
     }
     accessRequired.hidden = false;
     if (session.authenticated) document.querySelector("#manager-login-message").textContent = "Esta conta não tem permissão de gerência no portal.";
+    else await loadBootstrapState();
   } catch (error) {
     accessRequired.hidden = false;
+    showNotice(error.message, "error");
+  }
+}
+
+async function loadBootstrapState() {
+  try {
+    const state = await api("/api/sector/bootstrap-manager");
+    bootstrapPanel.hidden = !state.available;
+    if (state.available && !state.setupConfigured) {
+      bootstrapMessage.textContent = "Configure SECTOR_MANAGER_BOOTSTRAP_TOKEN no servidor antes de criar a primeira conta.";
+      document.querySelector("#bootstrap-manager-button").disabled = true;
+    }
+  } catch (error) {
     showNotice(error.message, "error");
   }
 }
@@ -169,6 +186,30 @@ document.querySelector("#manager-login-form").addEventListener("submit", async e
     await Promise.all([loadAccounts(), loadPortalOrders()]);
   } catch (error) {
     message.textContent = error.message;
+  } finally {
+    requestBusy = false;
+    button.disabled = false;
+  }
+});
+
+bootstrapForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  if (requestBusy) return;
+  requestBusy = true;
+  const button = document.querySelector("#bootstrap-manager-button");
+  button.disabled = true;
+  bootstrapMessage.textContent = "Criando primeiro acesso…";
+  try {
+    const payload = Object.fromEntries(new FormData(bootstrapForm).entries());
+    const result = await api("/api/sector/bootstrap-manager", { method: "POST", body: JSON.stringify(payload) });
+    bootstrapForm.reset();
+    bootstrapPanel.hidden = true;
+    document.querySelector("#manager-email").value = result.email || payload.email;
+    document.querySelector("#manager-password").focus();
+    document.querySelector("#manager-login-message").textContent = "A conta inicial foi criada. Entre com o e-mail e a senha que acabou de cadastrar.";
+    showNotice("Primeiro acesso da gerência criado.", "success");
+  } catch (error) {
+    bootstrapMessage.textContent = error.message;
   } finally {
     requestBusy = false;
     button.disabled = false;

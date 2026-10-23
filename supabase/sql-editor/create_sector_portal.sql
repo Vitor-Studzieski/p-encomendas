@@ -31,6 +31,9 @@ create table if not exists public.sector_portal_accounts (
   )
 );
 
+create unique index if not exists sector_portal_accounts_single_active_manager_idx
+  on public.sector_portal_accounts (role) where role = 'manager' and active = true;
+
 create table if not exists public.sector_portal_orders (
   id uuid primary key default gen_random_uuid(),
   display_id text not null unique,

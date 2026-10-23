@@ -34,6 +34,10 @@ td small { margin-top: 4px; color: var(--portal-muted); font-size: 11px; }
 .accounts-footer { justify-content: center; text-align: center; }
 .manager-toolbar { display: flex; justify-content: space-between; align-items: center; margin: 0 0 14px; color: var(--portal-muted); font-size: 12px; }
 .login-manager-form { margin-top: 16px; }
+.bootstrap-panel { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--portal-border); }
+.bootstrap-panel h3 { margin: 0 0 6px; font: 700 16px Manrope, sans-serif; }
+.bootstrap-panel > p { margin: 0; color: var(--portal-muted); font-size: 12px; line-height: 1.5; }
+.bootstrap-panel .account-form { margin-top: 14px; }
 .order-items-editor { grid-column: 1 / -1; padding: 16px; border: 1px solid var(--portal-border); border-radius: 12px; background: #f8fafc; }
 .order-items-editor .section-heading { margin-bottom: 12px; }
 .order-items-editor h3 { margin: 0 0 4px; font: 700 15px Manrope, sans-serif; }

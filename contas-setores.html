@@ -18,12 +18,23 @@
     <div class="notice" id="accounts-notice" role="status" hidden></div>
     <section class="access-required panel" id="access-required" hidden>
       <h2>Entrar como gerente do portal</h2>
-      <p>Esta conta pertence ao portal independente e não usa a credencial da dashboard.</p>
+      <p>Esta conta pertence ao portal independente e não usa a credencial da dashboard. A primeira conta de gerência é criada aqui depois que o portal estiver configurado; não existe uma senha padrão.</p>
       <form id="manager-login-form" class="account-form login-manager-form">
         <label>E-mail<input id="manager-email" type="email" autocomplete="username" required maxlength="254"></label>
         <label>Senha<input id="manager-password" type="password" autocomplete="current-password" required maxlength="256"></label>
         <div class="form-actions"><p id="manager-login-message" role="status" aria-live="polite"></p><button class="button button-primary" id="manager-login-button" type="submit">Entrar</button></div>
       </form>
+      <section class="bootstrap-panel" id="bootstrap-manager-panel" hidden>
+        <h3>Criar o primeiro acesso da gerência</h3>
+        <p>Este cadastro aparece somente enquanto ainda não existir uma conta de gerência. Use o token de configuração definido no servidor.</p>
+        <form id="bootstrap-manager-form" class="account-form">
+          <label>Token de configuração<input name="setup_token" type="password" required autocomplete="off"></label>
+          <label>Nome<input name="display_name" required maxlength="120" autocomplete="name"></label>
+          <label>E-mail de acesso<input name="email" type="email" required maxlength="254" autocomplete="email"></label>
+          <label>Senha da gerência<input name="password" type="password" required minlength="12" maxlength="128" autocomplete="new-password"><small>Escolha uma senha com pelo menos 12 caracteres.</small></label>
+          <div class="form-actions"><p id="bootstrap-manager-message" role="status" aria-live="polite"></p><button class="button button-primary" id="bootstrap-manager-button" type="submit">Criar acesso da gerência</button></div>
+        </form>
+      </section>
     </section>
     <section id="accounts-content" hidden>
       <div class="manager-toolbar"><span id="manager-name"></span><button class="button button-secondary" id="manager-logout" type="button">Sair</button></div>
