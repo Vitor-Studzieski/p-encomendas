@@ -98,6 +98,8 @@ export function normalizeOrder(row) {
     : Array.isArray(row.order_items) ? row.order_items : [];
   return {
     id: row.display_id || row.external_order_id || row.order_number || row.id || "Sem identificação",
+    databaseId: row.id || row.order_id || "",
+    externalOrderId: row.external_order_id || "",
     customer: customer.name || row.customer_name || "Cliente",
     phone: customer.phone_e164 || customer.phone || row.customer_phone || "",
     fiscalPhone: row.fiscal_phone_e164 || row.fiscal_phone || row.fiscalPhone || "",

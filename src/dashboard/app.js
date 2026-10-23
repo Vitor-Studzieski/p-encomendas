@@ -114,6 +114,7 @@ function showOrder(id) {
       "<div class=\"dialog-actions\">" + actions.map(action => "<button type=\"button\" class=\"action-button" + (action.danger ? " action-danger" : "") + "\" data-order-action=\"" + action.action + "\"" + (connected ? "" : " disabled") + ">" + action.label + "</button>").join("") + "</div>" +
       (!connected ? "<p class=\"connection-hint\">Ação disponível quando a API autenticada estiver conectada.</p>" : "") + "</div>"
     : "";
+  const productionMarkup = renderOrderProductionActions(order, connected);
   document.getElementById("dialog-content").innerHTML =
     "<h2 class=\"dialog-title\">" + escapeHtml(order.id) + "</h2>" +
     "<p class=\"dialog-subtitle\">Detalhes da encomenda · " + escapeHtml(prettyDate(order.pickupDate)) + "</p>" +
@@ -126,8 +127,47 @@ function showOrder(id) {
       "<div class=\"detail-items\"><div class=\"detail-label\">Itens</div>" + itemsMarkup + "</div>" +
       "<div><div class=\"detail-label\">Setor</div><div class=\"detail-value\">" + escapeHtml(order.sector || "—") + "</div></div>" +
       "<div class=\"detail-items\"><div class=\"detail-label\">Observações</div><div class=\"detail-value\">" + escapeHtml(order.notes || "Sem observações") + "</div></div></div>" + actionMarkup;
+  document.getElementById("dialog-content").insertAdjacentHTML("beforeend", productionMarkup);
   document.querySelectorAll("[data-order-action]").forEach(button => button.addEventListener("click", () => performOrderAction(order, button.dataset.orderAction, button)));
+  document.querySelectorAll("[data-order-production-action]").forEach(button => button.addEventListener("click", () => performProductionAction(button)));
   orderDialog.showModal();
+}
+
+function renderOrderProductionActions(order, connected) {
+  if (!["confirmed", "preparing", "needs_attention"].includes(order.status)) return "";
+  const orderReferences = new Set([order.id, order.databaseId, order.externalOrderId].filter(Boolean).map(String));
+  const matchingTasks = productionTasks.filter(task => {
+    const taskOrder = relation(task.order);
+    return [task.order_ref, task.external_order_id, task.order_id, taskOrder.external_order_id, taskOrder.id]
+      .filter(Boolean).some(reference => orderReferences.has(String(reference)));
+  });
+  const groups = new Map();
+  for (const task of matchingTasks) {
+    const sector = relation(task.sector);
+    const groupKey = String(task.sector_id || sector.id || sector.slug || sector.name || task.sector_name || "sector");
+    if (!groups.has(groupKey)) groups.set(groupKey, { name: sector.name || task.sector_name || "Setor", tasks: [] });
+    groups.get(groupKey).tasks.push(task);
+  }
+  if (!groups.size) return "";
+
+  const sectors = Array.from(groups.values()).map(group => {
+    const states = group.tasks.map(productionState);
+    const state = states.every(value => value === "completed")
+      ? "completed"
+      : states.includes("needs_attention")
+        ? "needs_attention"
+        : states.includes("planned")
+          ? "planned"
+          : "in_progress";
+    const action = state === "in_progress" ? "mark_ready" : state === "completed" ? "" : "start_preparing";
+    const label = state === "in_progress" ? "Marcar pronto" : state === "completed" ? "Setor pronto" : state === "needs_attention" ? "Retomar produção" : "Iniciar setor";
+    const taskIds = group.tasks.map(task => String(task.id || "")).filter(Boolean);
+    const actionButton = action
+      ? "<button type=\"button\" class=\"action-button\" data-order-production-action=\"" + action + "\" data-order-ref=\"" + escapeHtml(order.externalOrderId || order.id) + "\" data-task-ids=\"" + escapeHtml(JSON.stringify(taskIds)) + "\" data-department=\"" + escapeHtml(group.name) + "\" data-customer-phone=\"" + escapeHtml(order.phone || "") + "\"" + (connected ? "" : " disabled") + ">" + label + "</button>"
+      : "<span class=\"production-sector-complete\">Setor pronto</span>";
+    return "<div class=\"order-production-sector\"><span><strong>" + escapeHtml(group.name) + "</strong><small>" + (state === "in_progress" ? "Em produção" : state === "completed" ? "Concluído" : state === "needs_attention" ? "Precisa de atenção" : "Aguardando início") + "</small></span>" + actionButton + "</div>";
+  }).join("");
+  return "<section class=\"order-production-actions\"><strong>Produção por setor</strong><div class=\"order-production-list\">" + sectors + "</div>" + (!connected ? "<p class=\"connection-hint\">Ação disponível quando a API autenticada estiver conectada.</p>" : "") + "</section>";
 }
 
 async function performOrderAction(order, action, button) {
@@ -401,15 +441,15 @@ async function refreshProductionAgenda(silent = false) {
 
 async function performProductionAction(button) {
   const card = button.closest(".production-task");
-  const action = button.dataset.productionAction;
-  const orderRef = card.dataset.orderRef;
-  const taskIds = JSON.parse(card.dataset.taskIds || "[]");
+  const action = button.dataset.productionAction || button.dataset.orderProductionAction;
+  const orderRef = card?.dataset.orderRef || button.dataset.orderRef;
+  const taskIds = JSON.parse(card?.dataset.taskIds || button.dataset.taskIds || "[]");
   const tasks = productionTasks.filter(task => taskIds.includes(String(task.id || "")));
   const issueTask = tasks.find(task => productionState(task) !== "completed");
   let reason = "";
   if (action === "report_issue") {
     const issueSector = relation(issueTask?.sector);
-    reason = window.prompt("Descreva o problema em " + (issueSector.name || issueTask?.sector_name || card.dataset.department) + " para a fiscal:")?.trim() || "";
+    reason = window.prompt("Descreva o problema em " + (issueSector.name || issueTask?.sector_name || card?.dataset.department || button.dataset.department) + " para a fiscal:")?.trim() || "";
     if (!reason) return;
   }
   const actionTasks = action === "report_issue"
@@ -428,8 +468,8 @@ async function performProductionAction(button) {
       const sector = relation(task.sector);
       const result = await requestJson(config.orderActionEndpoint, { method: "POST", body: JSON.stringify({
         event_id: crypto.randomUUID(), external_order_id: orderRef,
-        customer_phone: card.dataset.customerPhone,
-        action, sector: sector.name || task.sector_name || card.dataset.department,
+        customer_phone: card?.dataset.customerPhone || button.dataset.customerPhone,
+        action, sector: sector.name || task.sector_name || card?.dataset.department || button.dataset.department,
         sector_id: task.sector_id || sector.id,
         notify_customer: action === "start_preparing" && !hasStartedBefore && completedActions === 0,
         reason
@@ -438,6 +478,7 @@ async function performProductionAction(button) {
       warnings = warnings.concat(result?.warnings || []);
     }
     showToast(warnings.length ? "Andamento atualizado. " + notificationWarningSummary(warnings) : "Andamento do setor atualizado.", warnings.length ? "error" : "success");
+    if (button.hasAttribute("data-order-production-action")) orderDialog.close();
     await refreshOrders();
   } catch (error) {
     await refreshOrders();
