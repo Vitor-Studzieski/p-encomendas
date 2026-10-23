@@ -220,6 +220,8 @@ tbody tr:last-child td { border-bottom: 0; }
 .order-production-sector small { color: var(--muted); font-size: 10px; }
 .order-production-sector .action-button { min-height: 34px; padding-inline: 11px; white-space: nowrap; }
 .production-sector-complete { color: #30714e; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.order-ready-action { display: grid; justify-items: start; gap: 9px; border-top: 1px solid var(--line); padding-top: 12px; }
+.order-ready-action p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
 
 /* Operation settings */
 .settings-card { overflow: hidden; }
